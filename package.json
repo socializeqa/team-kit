@@ -1,7 +1,7 @@
 {
   "name": "@socialize/fleet-kit",
   "version": "1.0.0",
-  "description": "The plumbing every Socialize project shares — WhatsApp Cloud, Telegram, phone, money and country helpers.",
+  "description": "The plumbing every Socialize project shares \u2014 WhatsApp Cloud, Telegram, phone, money and country helpers.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -13,10 +13,11 @@
     "./phone": "./dist/phone.js",
     "./money": "./dist/money.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
-    "prepare": "tsc",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
@@ -28,5 +29,7 @@
     "type": "git",
     "url": "git+https://github.com/socializeqa/fleet-kit.git"
   },
-  "publishConfig": { "access": "public" }
+  "publishConfig": {
+    "access": "public"
+  }
 }
