@@ -1,0 +1,62 @@
+# @socialize/fleet-kit
+
+The plumbing every [Socialize](https://socialize.qa) project shares — WhatsApp
+Cloud API, Telegram, and the phone and money helpers a Qatari agency needs.
+
+Three of our projects had each written the WhatsApp sender separately. That is
+three places to fix a Graph version bump and three chances to get a template's
+parameter order wrong. This is those three, once.
+
+## Install
+
+```bash
+pnpm add github:socializeqa/fleet-kit
+```
+
+## Use
+
+Configuration is passed in, never read from the environment — one of our
+projects resolves credentials per branch at request time, and only the caller
+knows which line is speaking.
+
+```ts
+import { whatsapp, telegram, phone, money } from "@socialize/fleet-kit";
+
+const line = {
+  token: process.env.META_SYSTEM_USER_TOKEN!,
+  phoneNumberId: process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID!,
+};
+
+// Business-initiated: an approved template, outside the 24-hour window.
+await whatsapp.sendTemplate(line, "+974 5036 8805", {
+  name: "doc_ready",
+  body: ["Sara", "invoice INV-2026-014", "QAR 1,200, due 15 Aug"],
+  urlSuffix: publicToken,
+});
+
+await telegram.send({ token: process.env.TELEGRAM_BOT_TOKEN! }, {
+  chatId: partnersRoom,
+  emoji: "💰",
+  title: "Payment received",
+  lines: [{ label: "Invoice", value: "INV-2026-014" }],
+});
+
+phone.format("97450368805");   // "+974 5036 8805"
+money.qarInWords(1250);        // "Qatari Riyals One Thousand Two Hundred Fifty Only"
+```
+
+Nothing throws. Sends answer with `{ ok, id?, error? }` — a message that fails
+must never take down the work that asked for it.
+
+## What is deliberately not here
+
+The admin UI kits. A restaurant's panel and a decoration company's panel are
+meant to look nothing alike; forcing one design on both would be a rewrite that
+buys nothing. This package is the pipes, not the paint.
+
+## House rules it encodes
+
+- **Telegram is internal, WhatsApp is for clients.** Never the reverse.
+- **Acceptance is not delivery.** A message id proves Meta took it, not that it
+  arrived — confirm on the device or via the delivery webhook.
+- Outside the 24-hour service window, only an **approved template** will send.
