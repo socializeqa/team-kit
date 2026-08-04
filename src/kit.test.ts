@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { formatAmount, formatQAR, lineTotal, qarInWords, round2 } from "./money.js";
 import { COUNTRIES, digits, format, parse, whatsappLink } from "./phone.js";
+import { jobFinished, watched } from "./sentry.js";
 import { render } from "./telegram.js";
 import { digitsOnly } from "./whatsapp.js";
 
@@ -99,5 +100,56 @@ describe("telegram", () => {
 describe("whatsapp", () => {
   it("hands Meta bare digits", () => {
     expect(digitsOnly("+974 5036 8805")).toBe("97450368805");
+  });
+});
+
+describe("sentry crons", () => {
+  const DSN = "https://abc123@o4511850408181760.ingest.us.sentry.io/4511852075810816";
+  const calls: { url: string; body: unknown }[] = [];
+  const stub = () => {
+    calls.length = 0;
+    globalThis.fetch = (async (url: string, init: { body: string }) => {
+      calls.push({ url, body: JSON.parse(init.body) });
+      return new Response(null, { status: 202 });
+    }) as unknown as typeof fetch;
+  };
+
+  it("builds the check-in url from the DSN", async () => {
+    stub();
+    await jobFinished({ dsn: DSN }, "nightly-sweep", true);
+    expect(calls[0].url).toBe(
+      "https://o4511850408181760.ingest.us.sentry.io/api/4511852075810816/cron/nightly-sweep/abc123/",
+    );
+  });
+
+  it("says nothing at all when the DSN is missing or malformed", async () => {
+    stub();
+    await jobFinished({ dsn: "" }, "nightly-sweep", true);
+    await jobFinished({ dsn: "not-a-dsn" }, "nightly-sweep", true);
+    expect(calls).toHaveLength(0);
+  });
+
+  // A 500 is how the sweeps report a bad night; they do not throw.
+  it("counts a 5xx as a failed run, not a healthy one", async () => {
+    stub();
+    await watched({ dsn: DSN }, "sweep", "0 5 * * *", async () => new Response(null, { status: 500 }));
+    expect((calls[1].body as { status: string }).status).toBe("error");
+  });
+
+  it("reports a throw as failed and still rethrows it", async () => {
+    stub();
+    await expect(
+      watched({ dsn: DSN }, "sweep", "0 5 * * *", async () => {
+        throw new Error("database is gone");
+      }),
+    ).rejects.toThrow("database is gone");
+    expect((calls[1].body as { status: string }).status).toBe("error");
+  });
+
+  it("hands Sentry the schedule so a run that never happens is noticed", async () => {
+    stub();
+    await watched({ dsn: DSN }, "sweep", "55 8,15 * * *", async () => new Response(null, { status: 200 }));
+    const config = (calls[0].body as { monitor_config: { schedule: { value: string } } }).monitor_config;
+    expect(config.schedule.value).toBe("55 8,15 * * *");
   });
 });

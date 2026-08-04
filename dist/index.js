@@ -13,3 +13,4 @@ export * as whatsapp from "./whatsapp.js";
 export * as telegram from "./telegram.js";
 export * as phone from "./phone.js";
 export * as money from "./money.js";
+export * as sentry from "./sentry.js";
