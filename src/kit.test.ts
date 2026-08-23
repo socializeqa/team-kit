@@ -129,6 +129,20 @@ describe("sentry crons", () => {
     expect(calls).toHaveLength(0);
   });
 
+  // The close must land on the SAME check-in whatever order the two
+  // requests arrive in — slug-only correlation raced, filed the ok as a
+  // second check-in, and the open one aged into "Cron failure" (Damine
+  // auto-statements, five nights in Aug 2026).
+  it("threads one minted check_in_id through both ends of a watched run", async () => {
+    stub();
+    await watched({ dsn: DSN }, "sweep", "0 5 * * *", async () => new Response(null, { status: 200 }));
+    const [open, close] = calls.map((c) => c.body as { check_in_id?: string; status: string });
+    expect(open.status).toBe("in_progress");
+    expect(close.status).toBe("ok");
+    expect(open.check_in_id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(close.check_in_id).toBe(open.check_in_id);
+  });
+
   // A 500 is how the sweeps report a bad night; they do not throw.
   it("counts a 5xx as a failed run, not a healthy one", async () => {
     stub();

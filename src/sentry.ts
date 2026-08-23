@@ -53,18 +53,24 @@ async function post(url: string, body: unknown): Promise<void> {
  * one. `schedule` is the crontab line from vercel.json, verbatim.
  *
  * The ingest endpoint answers 202 with an empty body — it does not hand
- * back a check-in id, whatever the docs imply — so the pair is correlated
- * by monitor slug rather than threaded by id. Sentry closes the open
- * check-in when the matching result arrives.
+ * back a check-in id — so WE mint the id (the docs' overlapping-jobs
+ * pattern) and send it on both ends. Correlating by slug alone looked
+ * fine but was a race: whenever the closing "ok" overtook the opening
+ * "in_progress" through ingest, Sentry filed them as two check-ins and
+ * the open one aged into a timeout — "Cron failure: auto-statements"
+ * every few nights on Damine, with the job itself green. Returns the id
+ * for jobFinished.
  */
 export async function jobStarted(
   config: CronConfig,
   slug: string,
   schedule: string,
-): Promise<void> {
+): Promise<string> {
+  const checkInId = crypto.randomUUID();
   const url = checkInUrl(config, slug);
-  if (!url) return;
+  if (!url) return checkInId;
   await post(url, {
+    check_in_id: checkInId,
     status: "in_progress",
     monitor_config: {
       schedule: { type: "crontab", value: schedule },
@@ -78,17 +84,27 @@ export async function jobStarted(
       timezone: "Etc/UTC",
     },
   });
+  return checkInId;
 }
 
-/** Close the loop. `ok: false` raises the job as failed rather than missed. */
+/**
+ * Close the loop. `ok: false` raises the job as failed rather than missed.
+ * Pass the id jobStarted returned so the close lands on the same check-in
+ * whatever order the two requests arrive in; without one, Sentry falls
+ * back to slug matching (kept for old callers, but it races — see above).
+ */
 export async function jobFinished(
   config: CronConfig,
   slug: string,
   ok: boolean,
+  checkInId?: string,
 ): Promise<void> {
   const url = checkInUrl(config, slug);
   if (!url) return;
-  await post(url, { status: ok ? "ok" : "error" });
+  await post(url, {
+    ...(checkInId ? { check_in_id: checkInId } : {}),
+    status: ok ? "ok" : "error",
+  });
 }
 
 /**
@@ -106,13 +122,13 @@ export async function watched(
   schedule: string,
   job: () => Promise<Response>,
 ): Promise<Response> {
-  await jobStarted(config, slug, schedule);
+  const checkInId = await jobStarted(config, slug, schedule);
   try {
     const response = await job();
-    await jobFinished(config, slug, response.status < 500);
+    await jobFinished(config, slug, response.status < 500, checkInId);
     return response;
   } catch (caught) {
-    await jobFinished(config, slug, false);
+    await jobFinished(config, slug, false, checkInId);
     throw caught;
   }
 }
