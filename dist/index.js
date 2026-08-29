@@ -14,3 +14,4 @@ export * as telegram from "./telegram.js";
 export * as phone from "./phone.js";
 export * as money from "./money.js";
 export * as sentry from "./sentry.js";
+export * as changelog from "./changelog.js";

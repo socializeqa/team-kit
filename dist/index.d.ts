@@ -14,6 +14,8 @@ export * as telegram from "./telegram.js";
 export * as phone from "./phone.js";
 export * as money from "./money.js";
 export * as sentry from "./sentry.js";
+export * as changelog from "./changelog.js";
 export type { WhatsAppConfig, SendResult, TemplateMessage } from "./whatsapp.js";
 export type { TelegramConfig, Post, TelegramResult } from "./telegram.js";
 export type { Country } from "./phone.js";
+export type { ChangelogEntry, FeedConfig, FeedResult, AuditConfig, AuditResult } from "./changelog.js";

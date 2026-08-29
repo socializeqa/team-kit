@@ -1,7 +1,7 @@
 {
   "name": "@socialize/fleet-kit",
-  "version": "1.1.1",
-  "description": "The plumbing every Socialize project shares \u00e2\u20ac\u201d WhatsApp Cloud, Telegram, phone, money, country and Sentry cron helpers.",
+  "version": "1.2.0",
+  "description": "The plumbing every Socialize project shares â€” WhatsApp Cloud, Telegram, phone, money, country and Sentry cron helpers.",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
@@ -12,10 +12,12 @@
     "./telegram": "./dist/telegram.js",
     "./phone": "./dist/phone.js",
     "./money": "./dist/money.js",
-    "./sentry": "./dist/sentry.js"
+    "./sentry": "./dist/sentry.js",
+    "./changelog": "./dist/changelog.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "bin"
   ],
   "scripts": {
     "build": "tsc",
@@ -32,5 +34,16 @@
   },
   "publishConfig": {
     "access": "public"
+  },
+  "bin": {
+    "fleet-changelog": "./bin/fleet-changelog.mjs"
+  },
+  "peerDependencies": {
+    "typescript": ">=5"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
   }
 }
