@@ -1,6 +1,6 @@
 {
   "name": "@socialize/fleet-kit",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "The plumbing every Socialize project shares â€” WhatsApp Cloud, Telegram, phone, money, country and Sentry cron helpers.",
   "license": "MIT",
   "type": "module",
@@ -20,7 +20,7 @@
     "bin"
   ],
   "scripts": {
-    "build": "tsc",
+    "compile": "tsc",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

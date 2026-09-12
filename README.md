@@ -13,6 +13,13 @@ parameter order wrong. This is those three, once.
 pnpm add github:socializeqa/fleet-kit
 ```
 
+`dist/` is committed and compiled with `pnpm compile`. There is deliberately
+no `build`, `prepare` or install script: npm rebuilds any GitHub dependency
+that has one, installing the kit's own dev tools on every consumer's install.
+That broke Elite Touch's CI from 3 Sep 2026, when Vitest 5 shipped and npm 10
+crashed resolving Vitest 4's add-ons. Change `src/`, run `pnpm compile`, and
+commit `dist/` with it.
+
 ## Use
 
 Configuration is passed in, never read from the environment — one of our
