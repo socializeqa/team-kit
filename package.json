@@ -1,6 +1,6 @@
 {
   "name": "@socialize/team-kit",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "The plumbing every Socialize project shares: WhatsApp Cloud, Telegram, phone, money, country and Sentry cron helpers.",
   "license": "MIT",
   "type": "module",
@@ -13,6 +13,7 @@
     "./phone": "./dist/phone.js",
     "./money": "./dist/money.js",
     "./sentry": "./dist/sentry.js",
+    "./cron": "./dist/cron.js",
     "./changelog": "./dist/changelog.js"
   },
   "files": [

@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { formatAmount, formatQAR, lineTotal, qarInWords, round2 } from "./money.js";
 import { COUNTRIES, digits, format, parse, whatsappLink } from "./phone.js";
-import { jobFinished, watched } from "./sentry.js";
+import { jobFinished, watched } from "./cron.js";
+import * as sentryAlias from "./sentry.js";
 import { render } from "./telegram.js";
 import { digitsOnly } from "./whatsapp.js";
 
@@ -108,8 +109,8 @@ describe("sentry crons", () => {
   const calls: { url: string; body: unknown }[] = [];
   const stub = () => {
     calls.length = 0;
-    globalThis.fetch = (async (url: string, init: { body: string }) => {
-      calls.push({ url, body: JSON.parse(init.body) });
+    globalThis.fetch = (async (url: string, init: { body?: string }) => {
+      calls.push({ url, body: init.body ? JSON.parse(init.body) : null });
       return new Response(null, { status: 202 });
     }) as unknown as typeof fetch;
   };
@@ -165,5 +166,72 @@ describe("sentry crons", () => {
     await watched({ dsn: DSN }, "sweep", "55 8,15 * * *", async () => new Response(null, { status: 200 }));
     const config = (calls[0].body as { monitor_config: { schedule: { value: string } } }).monitor_config;
     expect(config.schedule.value).toBe("55 8,15 * * *");
+  });
+
+  it("still answers at the v2.0 import path", () => {
+    expect(sentryAlias.watched).toBe(watched);
+  });
+});
+
+describe("healthchecks crons", () => {
+  const calls: string[] = [];
+  const stub = () => {
+    calls.length = 0;
+    globalThis.fetch = (async (url: string) => {
+      calls.push(url);
+      return new Response("OK", { status: 200 });
+    }) as unknown as typeof fetch;
+  };
+  const hc = { healthchecks: { pingKey: "pk_123" } };
+
+  it("pings start, then success, on one run id", async () => {
+    stub();
+    await watched(hc, "socialize-finance-sweep", "0 5 * * *", async () => new Response(null, { status: 200 }));
+    expect(calls).toHaveLength(2);
+    const [start, done] = calls;
+    const rid = start.match(/\?rid=([0-9a-f-]{36})$/)?.[1];
+    expect(rid).toBeDefined();
+    expect(start).toBe(`https://hc-ping.com/pk_123/socialize-finance-sweep/start?rid=${rid}`);
+    expect(done).toBe(`https://hc-ping.com/pk_123/socialize-finance-sweep?rid=${rid}`);
+  });
+
+  it("pings /fail on a 5xx and on a throw", async () => {
+    stub();
+    await watched(hc, "sweep", "0 5 * * *", async () => new Response(null, { status: 503 }));
+    expect(calls[1]).toMatch(/^https:\/\/hc-ping\.com\/pk_123\/sweep\/fail\?rid=/);
+    stub();
+    await expect(
+      watched(hc, "sweep", "0 5 * * *", async () => {
+        throw new Error("database is gone");
+      }),
+    ).rejects.toThrow("database is gone");
+    expect(calls[1]).toMatch(/\/sweep\/fail\?rid=/);
+  });
+
+  it("says nothing without a ping key", async () => {
+    stub();
+    await watched({ healthchecks: { pingKey: " " } }, "sweep", "0 5 * * *", async () => new Response(null));
+    await watched({}, "sweep", "0 5 * * *", async () => new Response(null));
+    expect(calls).toHaveLength(0);
+  });
+
+  it("reports to both watchers when both are given", async () => {
+    stub();
+    await watched(
+      { dsn: "https://abc123@o1.ingest.us.sentry.io/42", ...hc },
+      "sweep",
+      "0 5 * * *",
+      async () => new Response(null, { status: 200 }),
+    );
+    expect(calls.filter((u) => u.includes("hc-ping.com"))).toHaveLength(2);
+    expect(calls.filter((u) => u.includes("sentry.io"))).toHaveLength(2);
+  });
+
+  it("never fails the job when the watcher is down", async () => {
+    globalThis.fetch = (async () => {
+      throw new Error("network unreachable");
+    }) as unknown as typeof fetch;
+    const response = await watched(hc, "sweep", "0 5 * * *", async () => new Response("done", { status: 200 }));
+    expect(await response.text()).toBe("done");
   });
 });

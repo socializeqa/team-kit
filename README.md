@@ -60,6 +60,27 @@ money.qarInWords(1250);        // "Qatari Riyals One Thousand Two Hundred Fifty 
 Nothing throws. Sends answer with `{ ok, id?, error? }` — a message that fails
 must never take down the work that asked for it.
 
+## Scheduled jobs
+
+```ts
+import { watched } from "@socialize/team-kit/cron";
+
+return watched(
+  { healthchecks: { pingKey: process.env.HEALTHCHECKS_PING_KEY ?? "" } },
+  "socialize-finance-sweep",
+  "0 5 * * *",
+  () => run(),
+);
+```
+
+`watched` pings Healthchecks.io at the start and the end of the run
+(`/fail` on a throw or a 5xx) with one run id on both, so a job that never
+starts, never finishes or fails raises an alert on the check. The check
+itself — its cron schedule and grace — is created once through the
+Healthchecks API; the slug here names it. Passing `dsn` as well reports to
+Sentry Crons too; the team stopped relying on it in September 2026 because
+Sentry's free plan keeps one cron monitor switched on per organisation.
+
 ## What is deliberately not here
 
 The admin UI kits. A restaurant's panel and a decoration company's panel are

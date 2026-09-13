@@ -13,5 +13,7 @@ export * as whatsapp from "./whatsapp.js";
 export * as telegram from "./telegram.js";
 export * as phone from "./phone.js";
 export * as money from "./money.js";
+export * as cron from "./cron.js";
+/** The same module as `cron`, under its v2.0 name. */
 export * as sentry from "./sentry.js";
 export * as changelog from "./changelog.js";
