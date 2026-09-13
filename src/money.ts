@@ -60,9 +60,10 @@ function underThousand(value: number): string {
  */
 export function qarInWords(amount: number): string {
   const whole = Math.floor(round2(Math.abs(amount)));
-  const fils = Math.round((round2(Math.abs(amount)) - whole) * 100);
+  // The Qatari riyal is 100 dirhams (not fils, which is other currencies).
+  const dirhams = Math.round((round2(Math.abs(amount)) - whole) * 100);
 
-  if (whole === 0 && fils === 0) return "Qatari Riyals Zero Only";
+  if (whole === 0 && dirhams === 0) return "Qatari Riyals Zero Only";
 
   const groups: string[] = [];
   let rest = whole;
@@ -80,9 +81,9 @@ export function qarInWords(amount: number): string {
   if (rest > 0) groups.push(underThousand(rest));
 
   const words = groups.join(" ").replace(/\s+/g, " ").trim();
-  const filsPart = fils > 0 ? ` and ${underThousand(fils)} Fils` : "";
+  const dirhamsPart = dirhams > 0 ? ` and ${underThousand(dirhams)} Dirhams` : "";
   const sign = amount < 0 ? "Minus " : "";
-  return `${sign}Qatari Riyals ${words || "Zero"}${filsPart} Only`;
+  return `${sign}Qatari Riyals ${words || "Zero"}${dirhamsPart} Only`;
 }
 
 /** A line's own total, before any document-level discount. */

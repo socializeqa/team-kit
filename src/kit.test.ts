@@ -28,8 +28,8 @@ describe("money", () => {
     expect(qarInWords(100)).toBe("Qatari Riyals One Hundred Only");
   });
 
-  it("carries fils when there are any", () => {
-    expect(qarInWords(10.5)).toBe("Qatari Riyals Ten and Fifty Fils Only");
+  it("carries dirhams when there are any (the riyal is 100 dirhams)", () => {
+    expect(qarInWords(10.5)).toBe("Qatari Riyals Ten and Fifty Dirhams Only");
   });
 
   it("multiplies a line without drifting", () => {
