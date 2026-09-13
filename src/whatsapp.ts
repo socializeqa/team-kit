@@ -12,6 +12,8 @@
  * can act on or ignore.
  */
 
+import { digits } from "./phone.js";
+
 /** Which line is speaking. */
 export interface WhatsAppConfig {
   /** A system-user or permanent token with whatsapp_business_messaging. */
@@ -112,7 +114,7 @@ export function sendTemplate(
   }
   return post(config, {
     messaging_product: "whatsapp",
-    to: digitsOnly(to),
+    to: digits(to),
     type: "template",
     template: {
       name: message.name,
@@ -134,7 +136,7 @@ export function sendText(
 ): Promise<SendResult> {
   return post(config, {
     messaging_product: "whatsapp",
-    to: digitsOnly(to),
+    to: digits(to),
     type: "text",
     text: { body: text, preview_url: false },
   });
@@ -149,13 +151,15 @@ export function sendImage(
 ): Promise<SendResult> {
   return post(config, {
     messaging_product: "whatsapp",
-    to: digitsOnly(to),
+    to: digits(to),
     type: "image",
     image: { link: imageUrl, ...(caption ? { caption } : {}) },
   });
 }
 
-/** Meta wants digits with a country code and nothing else — no +, no spaces. */
-export function digitsOnly(phone: string): string {
-  return phone.replace(/\D/g, "");
-}
+/**
+ * Meta wants digits with a country code and nothing else — no +, no spaces.
+ * This is `phone.digits` under its older name, kept so existing imports
+ * keep working; new code calls `phone.digits`.
+ */
+export const digitsOnly = digits;

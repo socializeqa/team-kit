@@ -11,6 +11,7 @@
  * the work that asked for it — every call answers with a result the caller
  * can act on or ignore.
  */
+import { digits } from "./phone.js";
 const DEFAULT_GRAPH_VERSION = "v26.0";
 const TIMEOUT_MS = 15_000;
 function endpoint(config) {
@@ -64,7 +65,7 @@ export function sendTemplate(config, to, message) {
     }
     return post(config, {
         messaging_product: "whatsapp",
-        to: digitsOnly(to),
+        to: digits(to),
         type: "template",
         template: {
             name: message.name,
@@ -81,7 +82,7 @@ export function sendTemplate(config, to, message) {
 export function sendText(config, to, text) {
     return post(config, {
         messaging_product: "whatsapp",
-        to: digitsOnly(to),
+        to: digits(to),
         type: "text",
         text: { body: text, preview_url: false },
     });
@@ -90,12 +91,14 @@ export function sendText(config, to, text) {
 export function sendImage(config, to, imageUrl, caption) {
     return post(config, {
         messaging_product: "whatsapp",
-        to: digitsOnly(to),
+        to: digits(to),
         type: "image",
         image: { link: imageUrl, ...(caption ? { caption } : {}) },
     });
 }
-/** Meta wants digits with a country code and nothing else — no +, no spaces. */
-export function digitsOnly(phone) {
-    return phone.replace(/\D/g, "");
-}
+/**
+ * Meta wants digits with a country code and nothing else — no +, no spaces.
+ * This is `phone.digits` under its older name, kept so existing imports
+ * keep working; new code calls `phone.digits`.
+ */
+export const digitsOnly = digits;

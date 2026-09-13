@@ -11,6 +11,7 @@
  * the work that asked for it — every call answers with a result the caller
  * can act on or ignore.
  */
+import { digits } from "./phone.js";
 /** Which line is speaking. */
 export interface WhatsAppConfig {
     /** A system-user or permanent token with whatsapp_business_messaging. */
@@ -58,5 +59,9 @@ export declare function sendTemplate(config: WhatsAppConfig, to: string, message
 export declare function sendText(config: WhatsAppConfig, to: string, text: string): Promise<SendResult>;
 /** An image by public URL, with an optional caption. Same 24-hour rule. */
 export declare function sendImage(config: WhatsAppConfig, to: string, imageUrl: string, caption?: string): Promise<SendResult>;
-/** Meta wants digits with a country code and nothing else — no +, no spaces. */
-export declare function digitsOnly(phone: string): string;
+/**
+ * Meta wants digits with a country code and nothing else — no +, no spaces.
+ * This is `phone.digits` under its older name, kept so existing imports
+ * keep working; new code calls `phone.digits`.
+ */
+export declare const digitsOnly: typeof digits;

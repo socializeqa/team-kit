@@ -4,7 +4,7 @@ import { COUNTRIES, digits, format, parse, whatsappLink } from "./phone.js";
 import { jobFinished, watched } from "./cron.js";
 import * as sentryAlias from "./sentry.js";
 import { render } from "./telegram.js";
-import { digitsOnly } from "./whatsapp.js";
+import { digitsOnly, sendTemplate } from "./whatsapp.js";
 
 describe("money", () => {
   it("rounds without a floating-point tail", () => {
@@ -101,6 +101,35 @@ describe("telegram", () => {
 describe("whatsapp", () => {
   it("hands Meta bare digits", () => {
     expect(digitsOnly("+974 5036 8805")).toBe("97450368805");
+  });
+
+  it("strips a number exactly as phone.digits does", () => {
+    const inputs = [
+      "+974 5036 8805",
+      "(974) 5036-8805",
+      "+97450368805",
+      "97450368805",
+      "13105551234",
+      "99999999999",
+      "",
+    ];
+    for (const input of inputs) {
+      expect(digitsOnly(input)).toBe(digits(input));
+    }
+    expect(digitsOnly).toBe(digits);
+  });
+
+  it("sends the recipient to Meta as bare digits", async () => {
+    let sent: { to?: string } = {};
+    globalThis.fetch = (async (_url: string, init: { body?: string }) => {
+      sent = JSON.parse(init.body ?? "{}");
+      return new Response(JSON.stringify({ messages: [{ id: "wamid.1" }] }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const result = await sendTemplate({ token: "t", phoneNumberId: "1" }, "+974 5036 8805", {
+      name: "doc_ready",
+    });
+    expect(result).toEqual({ ok: true, id: "wamid.1" });
+    expect(sent.to).toBe("97450368805");
   });
 });
 
