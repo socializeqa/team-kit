@@ -1,5 +1,5 @@
 /**
- * Money, for a fleet that bills in Qatari Riyals.
+ * Money, for a team that bills in Qatari Riyals.
  *
  * Amounts are handled as numbers of riyals, rounded to two places at every
  * boundary — the documents are small enough that a float never drifts, and

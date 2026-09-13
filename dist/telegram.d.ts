@@ -1,7 +1,7 @@
 /**
  * Telegram — the house's internal voice.
  *
- * The rule that keeps the fleet sane: Telegram carries messages between
+ * The rule that keeps the team sane: Telegram carries messages between
  * the people who run the business, WhatsApp carries messages to clients.
  * Never the reverse. A client who receives a Telegram notice is confused;
  * a staff notice on WhatsApp costs a template and risks the line.

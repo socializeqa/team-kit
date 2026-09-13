@@ -1,7 +1,7 @@
 /**
  * The work log — how a project tells HQ what it shipped.
  *
- * Every fleet project keeps a release-note file that ships in the SAME
+ * Every Socialize project keeps a release-note file that ships in the SAME
  * commit as the work it describes. When a deploy reaches the live site,
  * the deploy posts whatever notes HQ does not already hold, and HQ is
  * what the client's portal and the house feed both read. One history,

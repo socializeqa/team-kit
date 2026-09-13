@@ -1,14 +1,18 @@
 #!/usr/bin/env node
-// The one command every fleet repo runs for its work log.
+// The one command every Socialize project runs for its work log.
 //
-//   fleet-changelog feed [--dry]           file the notes this deploy carried
-//   fleet-changelog check [--base <ref>]   refuse a push that ships
+//   team-changelog feed [--dry]            file the notes this deploy carried
+//   team-changelog check [--base <ref>]    refuse a push that ships
 //                                          user-visible work with no note
 //
 // Config comes from the repo's package.json, so the workflow file is
 // identical in every project and nothing needs arguments:
 //
-//   "fleetChangelog": { "path": "lib/changelog.ts", "export": "CHANGELOG" }
+//   "teamChangelog": { "path": "lib/changelog.ts", "export": "CHANGELOG" }
+//
+// The older "fleetChangelog" key is still read, so a project switches when
+// it upgrades. The command is also installed as `fleet-changelog` for the
+// same reason.
 //
 // feed reads CHANGELOG_TOKEN and, optionally, CHANGELOG_URL and SHA from
 // the environment. It never exits non-zero: a note that cannot be filed
@@ -36,7 +40,8 @@ const value = (name, fallback) => {
 function readConfig() {
   const pkgPath = join(ROOT, "package.json");
   if (!existsSync(pkgPath)) return {};
-  return JSON.parse(readFileSync(pkgPath, "utf8")).fleetChangelog ?? {};
+  const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+  return pkg.teamChangelog ?? pkg.fleetChangelog ?? {};
 }
 
 const { path: notesPath = "lib/changelog.ts", export: exportName = "CHANGELOG" } =
@@ -59,7 +64,7 @@ async function readEntries() {
   const js = ts.transpileModule(readFileSync(full, "utf8"), {
     compilerOptions: { module: "ESNext", target: "ESNext" },
   }).outputText;
-  const tmp = join(tmpdir(), `fleet-changelog-${process.pid}.mjs`);
+  const tmp = join(tmpdir(), `team-changelog-${process.pid}.mjs`);
   writeFileSync(tmp, js);
   return (await import(pathToFileURL(tmp).href))[exportName] ?? [];
 }

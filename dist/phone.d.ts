@@ -1,5 +1,5 @@
 /**
- * Phone numbers, for a fleet that works in Qatar and messages the world.
+ * Phone numbers, for a team that works in Qatar and messages the world.
  *
  * Three projects each kept their own country list — one generated, one
  * hand-typed, one a third shape — and all three needed the same two
@@ -14,7 +14,7 @@ export interface Country {
     name: string;
 }
 /**
- * The countries the fleet actually reaches — the Gulf, the Levant, the
+ * The countries the team actually reaches — the Gulf, the Levant, the
  * places staff and clients come from, and the markets worked in. Not the
  * whole world: a picker nobody can scroll is worse than a short list, and
  * `parse` still accepts any number it is given.

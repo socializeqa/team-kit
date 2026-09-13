@@ -1,7 +1,12 @@
-# @socialize/fleet-kit
+# @socialize/team-kit
 
 The plumbing every [Socialize](https://socialize.qa) project shares — WhatsApp
 Cloud API, Telegram, and the phone and money helpers a Qatari agency needs.
+
+Renamed from `@socialize/fleet-kit` on 13 September 2026 (v2.0.0). Nothing
+else changed in that release: the old install address keeps working through
+GitHub's redirect, and the `fleet-changelog` command stays as an alias of
+`team-changelog` until every project has switched.
 
 Three of our projects had each written the WhatsApp sender separately. That is
 three places to fix a Graph version bump and three chances to get a template's
@@ -10,7 +15,7 @@ parameter order wrong. This is those three, once.
 ## Install
 
 ```bash
-pnpm add github:socializeqa/fleet-kit
+pnpm add github:socializeqa/team-kit
 ```
 
 `dist/` is committed and compiled with `pnpm compile`. There is deliberately
@@ -27,7 +32,7 @@ projects resolves credentials per branch at request time, and only the caller
 knows which line is speaking.
 
 ```ts
-import { whatsapp, telegram, phone, money } from "@socialize/fleet-kit";
+import { whatsapp, telegram, phone, money } from "@socialize/team-kit";
 
 const line = {
   token: process.env.META_SYSTEM_USER_TOKEN!,
