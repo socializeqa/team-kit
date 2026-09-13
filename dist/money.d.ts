@@ -13,7 +13,7 @@ export declare function formatQAR(amount: number): string;
 export declare function formatAmount(amount: number): string;
 /**
  * The amount in words, the way a receipt says it out loud:
- * "Qatari Riyals One Thousand Two Hundred and Fifty Only".
+ * "Qatari Riyals One Thousand Two Hundred Fifty Only" for 1250.
  *
  * A paper that carries both the figure and the words is much harder to
  * alter after signing, which is the whole reason receipts do this.
