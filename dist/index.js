@@ -17,3 +17,4 @@ export * as cron from "./cron.js";
 /** The same module as `cron`, under its v2.0 name. */
 export * as sentry from "./sentry.js";
 export * as changelog from "./changelog.js";
+export * as wps from "./wps.js";
