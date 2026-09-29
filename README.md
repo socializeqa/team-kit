@@ -111,6 +111,23 @@ const brain = await readBrain({ key: process.env.SOCIALIZE_NOTIFY_KEY! }, { bran
 const system = brain.ok ? `${houseRules}\n\n${brain.text}` : houseRules;
 ```
 
+## Keeping keys out of Sentry
+
+Some addresses are keys: a client's paper, a customer's tracker, an invite
+link. A report that keeps the address keeps the key. Each app names its
+keyed addresses once and hands the scrubber to every `Sentry.init`.
+
+```ts
+import { onKeyedPage, scrubber, type ScrubRules } from "@socialize/team-kit/scrub";
+
+const KEYED: ScrubRules = { paths: ["/track/", "/account/"], hosts: ["portal."], query: ["code", "token"] };
+const scrub = scrubber(KEYED);
+
+Sentry.init({ dsn, beforeSend: scrub, beforeSendTransaction: scrub });
+// In the browser, film no replay where the address is the key:
+if (!onKeyedPage(KEYED, window.location)) Sentry.addIntegration(Sentry.replayIntegration());
+```
+
 ## Scheduled jobs
 
 ```ts

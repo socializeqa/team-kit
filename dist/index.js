@@ -23,3 +23,5 @@ export * as notify from "./notify.js";
 export * as ai from "./ai.js";
 /** The client's brain, kept once in HQ and read by every writer that speaks for them. */
 export * as brain from "./brain.js";
+/** What a Sentry report never carries: cookies, and the keys some addresses hold. */
+export * as scrub from "./scrub.js";

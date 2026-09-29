@@ -24,6 +24,8 @@ export * as notify from "./notify.js";
 export * as ai from "./ai.js";
 /** The client's brain, kept once in HQ and read by every writer that speaks for them. */
 export * as brain from "./brain.js";
+/** What a Sentry report never carries: cookies, and the keys some addresses hold. */
+export * as scrub from "./scrub.js";
 
 export type { WhatsAppConfig, SendResult, TemplateMessage } from "./whatsapp.js";
 export type { TelegramConfig, Post, TelegramResult } from "./telegram.js";
@@ -33,3 +35,4 @@ export type { ChangelogEntry, FeedConfig, FeedResult, AuditConfig, AuditResult }
 export type { NotifyConfig, NotifyEvent, NotifyResult } from "./notify.js";
 export type { AiConfig, AskJson } from "./ai.js";
 export type { BrainConfig, BrainLine, BrainResult } from "./brain.js";
+export type { ScrubRules } from "./scrub.js";
