@@ -17,3 +17,5 @@ export * as cron from "./cron.js";
 /** The same module as `cron`, under its v2.0 name. */
 export * as sentry from "./sentry.js";
 export * as changelog from "./changelog.js";
+/** The Telegram hub: tell HQ, and HQ's bot tells our team and the client's own group. */
+export * as notify from "./notify.js";

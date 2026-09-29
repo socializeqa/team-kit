@@ -60,6 +60,28 @@ money.qarInWords(1250);        // "Qatari Riyals One Thousand Two Hundred Fifty 
 Nothing throws. Sends answer with `{ ok, id?, error? }` — a message that fails
 must never take down the work that asked for it.
 
+## Telling HQ (the Telegram hub)
+
+An app does not keep a bot of its own. It tells Socialize HQ what happened,
+and HQ's bot says it in the project's topic of our team group and in the
+client's own group, where their owners and staff read it. Guests and
+customers stay on WhatsApp. The key is made in HQ → Settings → Telegram →
+Projects.
+
+```ts
+import { notify } from "@socialize/team-kit/notify";
+
+await notify({ key: process.env.SOCIALIZE_NOTIFY_KEY! }, {
+  to: "both",                  // "team" | "client" | "both"
+  key: "booking.cancelled",    // the app's own name for the event
+  emoji: "❌",
+  title: "Booking cancelled by the guest",
+  subtitle: "West Bay · Sam, 6 guests, tonight 9 PM",
+  about: { kind: "booking", id: booking.id }, // later news of it answers under it
+  follow: "reply",
+});
+```
+
 ## Scheduled jobs
 
 ```ts

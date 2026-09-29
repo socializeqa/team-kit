@@ -1,10 +1,12 @@
 /**
- * Telegram — the house's internal voice.
+ * Telegram — the voice of the people who run a business.
  *
- * The rule that keeps the team sane: Telegram carries messages between
- * the people who run the business, WhatsApp carries messages to clients.
- * Never the reverse. A client who receives a Telegram notice is confused;
- * a staff notice on WhatsApp costs a template and risks the line.
+ * The rule that keeps the team sane: Telegram carries messages to the
+ * people who run the business (our team, and since 29 September 2026 our
+ * clients' owners and staff too), WhatsApp carries messages to their guests
+ * and customers. Never the reverse. A guest who receives a Telegram notice
+ * is confused; a staff notice on WhatsApp costs a template and risks the line.
+ * An app tells HQ through `notify` rather than holding a bot of its own.
  *
  * Never throws — a bot that cannot speak must not stop the work.
  */
