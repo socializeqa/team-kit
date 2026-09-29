@@ -1,0 +1,27 @@
+name: CI
+
+# team-kit ships its compiled dist/ in the repo (apps install it straight from
+# a git tag, with no build step), so CI proves three things on every change:
+# the types hold, the tests pass, and the committed dist/ is what src/ compiles to.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run typecheck
+      - run: pnpm run test
+      - name: dist matches src
+        run: |
+          pnpm run compile
+          git diff --exit-code -- dist || (echo "dist/ is stale: run pnpm compile and commit it" && exit 1)
