@@ -82,6 +82,35 @@ await notify({ key: process.env.SOCIALIZE_NOTIFY_KEY! }, {
 });
 ```
 
+## Asking a model
+
+Every AI call in every app goes through one door: OpenRouter, strict JSON
+against a schema, nothing kept or trained on, and a second model when the
+first fails. The key and the kill switch come from the app.
+
+```ts
+import { askForJson, MODELS } from "@socialize/team-kit/ai";
+
+const reply = await askForJson<{ text: string }>(
+  { key: process.env.OPENROUTER_API_KEY ?? "", onError: report },
+  { models: [MODELS.writer, MODELS.careful], system, prompt, schema },
+);
+if (!reply) return; // slow, broken or switched off: carry on without it
+```
+
+## Reading the client's brain
+
+What we know about a client (rules, facts, voice, words never said, staff
+names, answers) is kept once, in HQ's Brain room. An app reads its own
+client's brain with the same key it tells HQ with; it can read no other.
+
+```ts
+import { readBrain } from "@socialize/team-kit/brain";
+
+const brain = await readBrain({ key: process.env.SOCIALIZE_NOTIFY_KEY! }, { branch: "West Bay" });
+const system = brain.ok ? `${houseRules}\n\n${brain.text}` : houseRules;
+```
+
 ## Scheduled jobs
 
 ```ts
@@ -111,7 +140,8 @@ buys nothing. This package is the pipes, not the paint.
 
 ## House rules it encodes
 
-- **Telegram is internal, WhatsApp is for clients.** Never the reverse.
+- **Telegram is for us and our clients (owners and staff); WhatsApp is for
+  their guests and customers.** Never the reverse (29 September 2026).
 - **Acceptance is not delivery.** A message id proves Meta took it, not that it
   arrived — confirm on the device or via the delivery webhook.
 - Outside the 24-hour service window, only an **approved template** will send.
