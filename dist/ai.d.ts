@@ -30,7 +30,10 @@ export interface AiConfig {
         title: string;
     };
     /** Hears a failed call (a refusal, a timeout): the app's report(). */
-    onError?: (where: string, detail: string) => void;
+    onError?: (where: string, detail: string, context: {
+        model: string;
+        schemaName: string;
+    }) => void;
 }
 /**
  * The house's three writers. Swapping one is a one-line change here, and
@@ -60,6 +63,11 @@ export interface AskJson {
     /** Pictures sent with the prompt. */
     images?: readonly {
         mediaType: string;
+        base64: string;
+    }[];
+    /** PDFs sent whole: the model reads the page's layout, not scraped text. */
+    files?: readonly {
+        filename: string;
         base64: string;
     }[];
 }

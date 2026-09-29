@@ -28,7 +28,7 @@ export interface AiConfig {
   /** How OpenRouter attributes the usage. */
   app?: { url: string; title: string };
   /** Hears a failed call (a refusal, a timeout): the app's report(). */
-  onError?: (where: string, detail: string) => void;
+  onError?: (where: string, detail: string, context: { model: string; schemaName: string }) => void;
 }
 
 /**
@@ -59,6 +59,8 @@ export interface AskJson {
   timeoutMs?: number;
   /** Pictures sent with the prompt. */
   images?: readonly { mediaType: string; base64: string }[];
+  /** PDFs sent whole: the model reads the page's layout, not scraped text. */
+  files?: readonly { filename: string; base64: string }[];
 }
 
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
@@ -82,6 +84,10 @@ async function once<T>(config: AiConfig, model: string, ask: AskJson): Promise<T
   for (const image of ask.images ?? []) {
     content.push({ type: "image_url", image_url: { url: `data:${image.mediaType};base64,${image.base64}` } });
   }
+  for (const file of ask.files ?? []) {
+    content.push({ type: "file", file: { filename: file.filename, file_data: `data:application/pdf;base64,${file.base64}` } });
+  }
+  const context = { model, schemaName: ask.schemaName ?? "answer" };
   try {
     const response = await fetch(ENDPOINT, {
       method: "POST",
@@ -107,11 +113,14 @@ async function once<T>(config: AiConfig, model: string, ask: AskJson): Promise<T
           { role: "system", content: ask.system },
           { role: "user", content },
         ],
-        response_format: { type: "json_schema", json_schema: { name: ask.schemaName ?? "answer", strict: true, schema: ask.schema } },
+        // The house models take a PDF natively, so it is billed as ordinary
+        // tokens and the model sees the page rather than scraped text.
+        ...(ask.files?.length ? { plugins: [{ id: "file-parser", pdf: { engine: "native" } }] } : {}),
+        response_format: { type: "json_schema", json_schema: { name: context.schemaName, strict: true, schema: ask.schema } },
       }),
     });
     if (!response.ok) {
-      config.onError?.(`ai ${model}`, `${response.status}: ${(await response.text()).slice(0, 400)}`);
+      config.onError?.(`ai ${model}`, `${response.status}: ${(await response.text()).slice(0, 400)}`, context);
       return null;
     }
     const body = (await response.json()) as { choices?: { message?: { content?: unknown } }[] };
@@ -119,7 +128,7 @@ async function once<T>(config: AiConfig, model: string, ask: AskJson): Promise<T
     if (typeof text !== "string") return null;
     return JSON.parse(text) as T;
   } catch (error) {
-    config.onError?.(`ai ${model}`, error instanceof Error ? error.message : String(error));
+    config.onError?.(`ai ${model}`, error instanceof Error ? error.message : String(error), context);
     return null;
   }
 }

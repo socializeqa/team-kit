@@ -27,6 +27,21 @@ describe("askForJson", () => {
     expect(heard).toEqual(["ai a/one"]);
   });
 
+  it("sends a PDF whole, read natively, and names the model and schema on a failure", async () => {
+    const heard: unknown[] = [];
+    const fetch = vi.fn(async () => new Response("no", { status: 404 }));
+    vi.stubGlobal("fetch", fetch);
+    const out = await askForJson(
+      { key: "k", onError: (_where, _detail, context) => heard.push(context) },
+      { models: ["m/one"], system: "s", prompt: "p", schema: {}, schemaName: "cv", files: [{ filename: "cv.pdf", base64: "JVBER" }] },
+    );
+    expect(out).toBeNull();
+    expect(heard).toEqual([{ model: "m/one", schemaName: "cv" }]);
+    const body = JSON.parse(String((fetch.mock.calls[0] as unknown as [string, RequestInit])[1].body));
+    expect(body.plugins).toEqual([{ id: "file-parser", pdf: { engine: "native" } }]);
+    expect(body.messages[1].content[1]).toEqual({ type: "file", file: { filename: "cv.pdf", file_data: "data:application/pdf;base64,JVBER" } });
+  });
+
   it("stays silent when switched off or without a key, and never throws", async () => {
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);
