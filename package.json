@@ -1,7 +1,7 @@
 {
   "name": "@socialize/team-kit",
-  "version": "2.2.0",
-  "description": "The plumbing every Socialize project shares: WhatsApp Cloud, Telegram, the Telegram hub, phone, money, country and Sentry cron helpers.",
+  "version": "2.3.0",
+  "description": "The plumbing every Socialize project shares: WhatsApp Cloud, Telegram, the Telegram hub, the AI connection, the client brain, phone, money, country and Sentry cron helpers.",
   "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@11.20.0",
@@ -16,7 +16,9 @@
     "./sentry": "./dist/sentry.js",
     "./cron": "./dist/cron.js",
     "./changelog": "./dist/changelog.js",
-    "./notify": "./dist/notify.js"
+    "./notify": "./dist/notify.js",
+    "./ai": "./dist/ai.js",
+    "./brain": "./dist/brain.js"
   },
   "files": [
     "dist",
