@@ -29,6 +29,21 @@ export interface AiConfig {
   app?: { url: string; title: string };
   /** Hears a failed call (a refusal, a timeout): the app's report(). */
   onError?: (where: string, detail: string, context: { model: string; schemaName: string }) => void;
+  /** Hears what each answered call cost, as OpenRouter reports it: how HQ
+   *  meters a client's AI to bill it (30 September 2026). */
+  onUsage?: (usage: AiUsage) => void | Promise<void>;
+}
+
+/** One call's bill. OpenRouter puts it on every answer; cost is in its
+ *  credits, which are US dollars (openrouter.ai/docs/use-cases/usage-accounting). */
+export interface AiUsage {
+  model: string;
+  schemaName: string;
+  promptTokens: number;
+  completionTokens: number;
+  costUsd: number;
+  /** Whether the answer was clean JSON; a model can bill for an answer it botched. */
+  ok: boolean;
 }
 
 /**
@@ -59,8 +74,10 @@ export interface AskJson {
   timeoutMs?: number;
   /** Pictures sent with the prompt. */
   images?: readonly { mediaType: string; base64: string }[];
-  /** PDFs sent whole: the model reads the page's layout, not scraped text. */
-  files?: readonly { filename: string; base64: string }[];
+  /** PDFs sent whole: the model reads the page's layout, not scraped text.
+   *  By link (a short-lived signed URL) when the file is large: a function
+   *  takes 4.5 MB of body on Vercel, and a link is a few hundred bytes. */
+  files?: readonly ({ filename: string; base64: string } | { filename: string; url: string })[];
 }
 
 const ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
@@ -85,7 +102,8 @@ async function once<T>(config: AiConfig, model: string, ask: AskJson): Promise<T
     content.push({ type: "image_url", image_url: { url: `data:${image.mediaType};base64,${image.base64}` } });
   }
   for (const file of ask.files ?? []) {
-    content.push({ type: "file", file: { filename: file.filename, file_data: `data:application/pdf;base64,${file.base64}` } });
+    const data = "url" in file ? file.url : `data:application/pdf;base64,${file.base64}`;
+    content.push({ type: "file", file: { filename: file.filename, file_data: data } });
   }
   const context = { model, schemaName: ask.schemaName ?? "answer" };
   try {
@@ -123,12 +141,79 @@ async function once<T>(config: AiConfig, model: string, ask: AskJson): Promise<T
       config.onError?.(`ai ${model}`, `${response.status}: ${(await response.text()).slice(0, 400)}`, context);
       return null;
     }
-    const body = (await response.json()) as { choices?: { message?: { content?: unknown } }[] };
+    const body = (await response.json()) as {
+      choices?: { message?: { content?: unknown } }[];
+      usage?: { cost?: number; prompt_tokens?: number; completion_tokens?: number };
+    };
     const text = body.choices?.[0]?.message?.content;
-    if (typeof text !== "string") return null;
-    return JSON.parse(text) as T;
+    let answer: T | null = null;
+    if (typeof text === "string") {
+      try {
+        answer = JSON.parse(text) as T;
+      } catch {
+        config.onError?.(`ai ${model}`, "the answer was not JSON", context);
+      }
+    }
+    try {
+      // Awaited: on a serverless function a meter left running is cut off
+      // the moment the answer goes back, and the call would go unbilled.
+      await config.onUsage?.({
+        ...context,
+        promptTokens: body.usage?.prompt_tokens ?? 0,
+        completionTokens: body.usage?.completion_tokens ?? 0,
+        costUsd: body.usage?.cost ?? 0,
+        ok: answer !== null,
+      });
+    } catch (error) {
+      // A meter that fails must not cost the caller its answer.
+      config.onError?.("ai usage", error instanceof Error ? error.message : String(error), context);
+    }
+    return answer;
   } catch (error) {
     config.onError?.(`ai ${model}`, error instanceof Error ? error.message : String(error), context);
+    return null;
+  }
+}
+
+// ── Asking through Socialize ─────────────────────────────────────────────
+
+export interface HqAiConfig {
+  /** The app's hub key, the one `notify` and `readBrain` use. */
+  key: string;
+  /** HQ's door; the live one unless a test points elsewhere. */
+  url?: string;
+  timeoutMs?: number;
+  /** Hears a refusal (a spending cap reached, a model not allowed). */
+  onError?: (where: string, detail: string) => void;
+}
+
+export const HQ_AI_URL = "https://socialize.qa/api/ai";
+
+/**
+ * The same ask, made by Socialize HQ on its own OpenRouter account: the app
+ * holds no AI key, and HQ records what each call cost against the app's
+ * client, to bill it on their statement (Damine, 30 September 2026: "use ai
+ * from socialize and then add their consumption in the bill"). `purpose`
+ * names the line the call is billed under ("CV screening"). HQ answers only
+ * with the house's models, within the client's monthly cap. Never throws.
+ */
+export async function askViaHq<T>(config: HqAiConfig, ask: AskJson & { purpose: string }): Promise<T | null> {
+  if (!config.key) return null;
+  try {
+    const response = await fetch(config.url ?? HQ_AI_URL, {
+      method: "POST",
+      signal: AbortSignal.timeout(config.timeoutMs ?? 90_000),
+      headers: { Authorization: `Bearer ${config.key}`, "Content-Type": "application/json" },
+      body: JSON.stringify(ask),
+    });
+    const body = (await response.json().catch(() => null)) as { ok?: boolean; answer?: T; error?: string } | null;
+    if (!response.ok || !body?.ok) {
+      config.onError?.("ai via hq", body?.error ?? `HQ answered ${response.status}`);
+      return null;
+    }
+    return body.answer ?? null;
+  } catch (error) {
+    config.onError?.("ai via hq", error instanceof Error ? error.message : String(error));
     return null;
   }
 }

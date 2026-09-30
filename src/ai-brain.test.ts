@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { askForJson, MODELS } from "./ai.js";
+import { askForJson, askViaHq, type AiUsage, HQ_AI_URL, MODELS } from "./ai.js";
 import { BRAIN_URL, readBrain } from "./brain.js";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -50,6 +50,66 @@ describe("askForJson", () => {
     expect(fetch).not.toHaveBeenCalled();
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("offline"); }));
     expect(await askForJson({ key: "k" }, { models: ["m"], system: "", prompt: "", schema: {} })).toBeNull();
+  });
+});
+
+describe("what a call cost", () => {
+  it("hears OpenRouter's bill for every answer, clean or botched", async () => {
+    const heard: AiUsage[] = [];
+    const bill = { cost: 0.0031, prompt_tokens: 2100, completion_tokens: 180 };
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify({ choices: [{ message: { content: "not json" } }], usage: bill })))
+        .mockResolvedValueOnce(new Response(JSON.stringify({ choices: [{ message: { content: '{"score":7}' } }], usage: bill }))),
+    );
+    const out = await askForJson({ key: "k", onUsage: (u) => void heard.push(u) }, { models: ["a/one", "b/two"], system: "s", prompt: "p", schema: {}, schemaName: "cv" });
+    expect(out).toEqual({ score: 7 });
+    expect(heard).toEqual([
+      { model: "a/one", schemaName: "cv", promptTokens: 2100, completionTokens: 180, costUsd: 0.0031, ok: false },
+      { model: "b/two", schemaName: "cv", promptTokens: 2100, completionTokens: 180, costUsd: 0.0031, ok: true },
+    ]);
+  });
+
+  it("sends a PDF by link when given one", async () => {
+    const fetch = vi.fn(async () => answer('{"ok":true}'));
+    vi.stubGlobal("fetch", fetch);
+    await askForJson({ key: "k" }, { models: ["m"], system: "s", prompt: "p", schema: {}, files: [{ filename: "cv.pdf", url: "https://x.supabase.co/sign/cv.pdf?token=t" }] });
+    const body = JSON.parse(String((fetch.mock.calls[0] as unknown as [string, RequestInit])[1].body));
+    expect(body.messages[1].content[1]).toEqual({ type: "file", file: { filename: "cv.pdf", file_data: "https://x.supabase.co/sign/cv.pdf?token=t" } });
+  });
+
+  it("never loses the answer to a meter that fails", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => answer('{"ok":true}')));
+    const out = await askForJson({ key: "k", onUsage: () => { throw new Error("db down"); } }, { models: ["m"], system: "s", prompt: "p", schema: {} });
+    expect(out).toEqual({ ok: true });
+  });
+});
+
+describe("askViaHq", () => {
+  it("asks HQ with the hub key and hands back the answer", async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ ok: true, answer: { score: 8 } })));
+    vi.stubGlobal("fetch", fetch);
+    const out = await askViaHq({ key: "szn_k" }, { purpose: "CV screening", models: [MODELS.careful], system: "s", prompt: "p", schema: {} });
+    expect(out).toEqual({ score: 8 });
+    const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe(HQ_AI_URL);
+    expect((init.headers as Record<string, string>).Authorization).toBe("Bearer szn_k");
+    expect(JSON.parse(String(init.body)).purpose).toBe("CV screening");
+  });
+
+  it("says why when HQ refuses, and never throws", async () => {
+    const heard: string[] = [];
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ ok: false, error: "this month's AI cap is reached" }), { status: 402 })));
+    expect(await askViaHq({ key: "k", onError: (_w, d) => heard.push(d) }, { purpose: "x", models: ["m"], system: "", prompt: "", schema: {} })).toBeNull();
+    expect(heard).toEqual(["this month's AI cap is reached"]);
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("offline"); }));
+    expect(await askViaHq({ key: "k" }, { purpose: "x", models: ["m"], system: "", prompt: "", schema: {} })).toBeNull();
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    expect(await askViaHq({ key: "" }, { purpose: "x", models: ["m"], system: "", prompt: "", schema: {} })).toBeNull();
+    expect(fetch).not.toHaveBeenCalled();
   });
 });
 

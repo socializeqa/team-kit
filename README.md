@@ -98,6 +98,22 @@ const reply = await askForJson<{ text: string }>(
 if (!reply) return; // slow, broken or switched off: carry on without it
 ```
 
+A client's app asks **through Socialize** instead, and holds no AI key: HQ
+makes the call on its own account, records what it cost against the client
+and bills it on their statement at cost + 30% (30 September 2026). The key is
+the app's hub key; `purpose` names the statement line. A large PDF goes as a
+short-lived signed link, never as base64 (a function takes 4.5 MB).
+
+```ts
+import { askViaHq, MODELS } from "@socialize/team-kit/ai";
+
+const read = await askViaHq<Screen>(
+  { key: process.env.SOCIALIZE_NOTIFY_KEY ?? "", onError: report },
+  { purpose: "CV screening", models: [MODELS.careful], system, prompt, schema,
+    files: [{ filename: "cv.pdf", url: signedUrl }] },
+);
+```
+
 ## Reading the client's brain
 
 What we know about a client (rules, facts, voice, words never said, staff

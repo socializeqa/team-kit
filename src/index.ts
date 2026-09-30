@@ -33,6 +33,6 @@ export type { Country } from "./phone.js";
 export type { CronConfig } from "./cron.js";
 export type { ChangelogEntry, FeedConfig, FeedResult, AuditConfig, AuditResult } from "./changelog.js";
 export type { NotifyConfig, NotifyEvent, NotifyResult } from "./notify.js";
-export type { AiConfig, AskJson } from "./ai.js";
+export type { AiConfig, AiUsage, AskJson, HqAiConfig } from "./ai.js";
 export type { BrainConfig, BrainLine, BrainResult } from "./brain.js";
 export type { ScrubRules } from "./scrub.js";

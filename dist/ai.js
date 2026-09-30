@@ -55,7 +55,8 @@ async function once(config, model, ask) {
         content.push({ type: "image_url", image_url: { url: `data:${image.mediaType};base64,${image.base64}` } });
     }
     for (const file of ask.files ?? []) {
-        content.push({ type: "file", file: { filename: file.filename, file_data: `data:application/pdf;base64,${file.base64}` } });
+        const data = "url" in file ? file.url : `data:application/pdf;base64,${file.base64}`;
+        content.push({ type: "file", file: { filename: file.filename, file_data: data } });
     }
     const context = { model, schemaName: ask.schemaName ?? "answer" };
     try {
@@ -95,12 +96,65 @@ async function once(config, model, ask) {
         }
         const body = (await response.json());
         const text = body.choices?.[0]?.message?.content;
-        if (typeof text !== "string")
-            return null;
-        return JSON.parse(text);
+        let answer = null;
+        if (typeof text === "string") {
+            try {
+                answer = JSON.parse(text);
+            }
+            catch {
+                config.onError?.(`ai ${model}`, "the answer was not JSON", context);
+            }
+        }
+        try {
+            // Awaited: on a serverless function a meter left running is cut off
+            // the moment the answer goes back, and the call would go unbilled.
+            await config.onUsage?.({
+                ...context,
+                promptTokens: body.usage?.prompt_tokens ?? 0,
+                completionTokens: body.usage?.completion_tokens ?? 0,
+                costUsd: body.usage?.cost ?? 0,
+                ok: answer !== null,
+            });
+        }
+        catch (error) {
+            // A meter that fails must not cost the caller its answer.
+            config.onError?.("ai usage", error instanceof Error ? error.message : String(error), context);
+        }
+        return answer;
     }
     catch (error) {
         config.onError?.(`ai ${model}`, error instanceof Error ? error.message : String(error), context);
+        return null;
+    }
+}
+export const HQ_AI_URL = "https://socialize.qa/api/ai";
+/**
+ * The same ask, made by Socialize HQ on its own OpenRouter account: the app
+ * holds no AI key, and HQ records what each call cost against the app's
+ * client, to bill it on their statement (Damine, 30 September 2026: "use ai
+ * from socialize and then add their consumption in the bill"). `purpose`
+ * names the line the call is billed under ("CV screening"). HQ answers only
+ * with the house's models, within the client's monthly cap. Never throws.
+ */
+export async function askViaHq(config, ask) {
+    if (!config.key)
+        return null;
+    try {
+        const response = await fetch(config.url ?? HQ_AI_URL, {
+            method: "POST",
+            signal: AbortSignal.timeout(config.timeoutMs ?? 90_000),
+            headers: { Authorization: `Bearer ${config.key}`, "Content-Type": "application/json" },
+            body: JSON.stringify(ask),
+        });
+        const body = (await response.json().catch(() => null));
+        if (!response.ok || !body?.ok) {
+            config.onError?.("ai via hq", body?.error ?? `HQ answered ${response.status}`);
+            return null;
+        }
+        return body.answer ?? null;
+    }
+    catch (error) {
+        config.onError?.("ai via hq", error instanceof Error ? error.message : String(error));
         return null;
     }
 }
