@@ -82,6 +82,98 @@ await notify({ key: process.env.SOCIALIZE_NOTIFY_KEY! }, {
 });
 ```
 
+`notify` answers `{ ok, sent, missing }`: `sent` counts the rooms Telegram
+really took it in, and `missing` names each room that was not there or
+refused it ("Señorritas Tex Mex has no group for money"). HQ books every
+one of those as a failed message, so nothing is lost in silence.
+
+**A client's groups per stream.** A client can keep money and hiring (an
+applicant's phone and email) away from the floor staff with a group for
+each, besides their group for all. Name the stream, or let the key's first
+word decide (`payment.`, `invoice.`, `credit.`, `money.` → money; `hiring.`,
+`application.` → hiring; the rest → ops). A stream with no group of its own
+goes to the group for all.
+
+```ts
+const hub = { key: process.env.SOCIALIZE_NOTIFY_KEY! };
+await notify(hub, { to: "client", key: "application.new", title: "New CV: Line cook" }); // → their hiring group
+await notify(hub, { to: "client", key: "shift.swap", stream: "ops", title: "Sara swapped Friday" });
+```
+
+### Buttons back to the app (v2.8.0)
+
+An event can carry up to three buttons. When someone in the room presses
+one, HQ posts the press to the app's **callback**, signed, and shows the
+app's answer under the message: "✅ Booking confirmed — Sam, 14:05", the
+buttons gone. Anyone who can see the message may press (the group is the
+trust boundary); HQ names them in the press. A button works once, for a
+week. The callback address and its secret are set in HQ → Settings →
+Telegram → Projects (the secret is shown once: keep it as
+`SOCIALIZE_PRESS_SECRET`). Without a callback, events still go out and
+their buttons are dropped.
+
+```ts
+await notify(hub, {
+  to: "both",
+  key: "booking.new",
+  title: "New booking",
+  subtitle: "West Bay · Sam, 6 guests, tonight 9 PM",
+  about: { kind: "booking", id: booking.id },
+  buttons: [
+    { label: "Confirm", action: "booking.confirm", payload: { booking: booking.id }, style: "go" },
+    { label: "Decline", action: "booking.decline", payload: { booking: booking.id }, style: "stop" },
+  ],
+});
+```
+
+A label is at most 32 letters, an action is lowercase letters, digits,
+dots, dashes and underscores (`booking.confirm`), and a payload is a JSON
+object of at most 1 KB.
+
+The callback, a Next.js route (`app/api/socialize/press/route.ts`):
+
+```ts
+import { verifyPress, type PressAnswer } from "@socialize/team-kit/press";
+
+export async function POST(request: Request) {
+  // The body exactly as it arrived: the signature is over these bytes.
+  const raw = await request.text();
+  const press = verifyPress(raw, request.headers, process.env.SOCIALIZE_PRESS_SECRET ?? "");
+  if (!press) return Response.json({ ok: false }, { status: 401 });
+
+  const by = `${press.by.name} via Telegram`;
+  let answer: PressAnswer;
+  switch (press.action) {
+    case "booking.confirm": {
+      const booking = await confirmBooking(String(press.payload.booking), { by, pressId: press.id });
+      answer = booking ? { ok: true, text: "Booking confirmed" } : { ok: false, text: "That booking was already cancelled" };
+      break;
+    }
+    case "booking.decline":
+      await declineBooking(String(press.payload.booking), { by, pressId: press.id });
+      answer = { ok: true, text: "Booking declined" };
+      break;
+    default:
+      answer = { ok: false, text: "This app doesn't know that button" };
+  }
+  return Response.json(answer);
+}
+```
+
+- **Answer within eight seconds**, `{ ok, text? }`. `ok: true` settles the
+  message; `ok: false` keeps the buttons and shows `text` to the presser, so
+  say why. No answer, a timeout or a non-2xx keeps the buttons too, tells the
+  presser "Couldn't reach …" and reaches HQ's Sentry.
+- **Make each action safe to repeat.** A press id comes once, but the same
+  event said in two rooms has a button in each, and a person may press the
+  second after the first. Keep `press.id` with what it did, or check the
+  state before acting, as above.
+- `verifyPress` checks the `x-socialize-signature` header (`sha256=` and the
+  hex HMAC-SHA256 of the raw body with the secret, compared in constant
+  time) and refuses a press older than five minutes by
+  `x-socialize-timestamp` and by its own signed `at` (`maxAgeSeconds` to
+  change it). It uses Node's crypto: call it from a server route.
+
 ## Asking a model
 
 Every AI call in every app goes through one door: OpenRouter, strict JSON

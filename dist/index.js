@@ -19,6 +19,8 @@ export * as sentry from "./sentry.js";
 export * as changelog from "./changelog.js";
 /** The Telegram hub: tell HQ, and HQ's bot tells our team and the client's own group. */
 export * as notify from "./notify.js";
+/** A press on an app's Telegram button, relayed by HQ and signed (server only). */
+export * as press from "./press.js";
 /** The one way an app talks to a model: strict JSON, nothing kept, a backup model. */
 export * as ai from "./ai.js";
 /** The client's brain, kept once in HQ and read by every writer that speaks for them. */

@@ -9,6 +9,10 @@
  * The app keeps one key, made in HQ's Settings → Telegram → Projects, and
  * passes it in; the kit reads no environment of its own. Never throws: a hub
  * that cannot be reached must not stop a booking from saving.
+ *
+ * An event may carry buttons; a press comes back to the app's callback,
+ * which reads it with `verifyPress` from `@socialize/team-kit/press`
+ * (v2.8.0).
  */
 export const HUB_URL = "https://socialize.qa/api/notify";
 export async function notify(config, event) {

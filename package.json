@@ -1,6 +1,6 @@
 {
   "name": "@socialize/team-kit",
-  "version": "2.7.0",
+  "version": "2.8.0",
   "description": "The plumbing every Socialize project shares: WhatsApp Cloud, Telegram, the Telegram hub, the AI connection, the client brain, the client's Google reviews, phone, money, country and Sentry cron helpers.",
   "license": "MIT",
   "type": "module",
@@ -17,6 +17,7 @@
     "./cron": "./dist/cron.js",
     "./changelog": "./dist/changelog.js",
     "./notify": "./dist/notify.js",
+    "./press": "./dist/press.js",
     "./ai": "./dist/ai.js",
     "./brain": "./dist/brain.js",
     "./reviews": "./dist/reviews.js",
@@ -32,6 +33,7 @@
     "test": "vitest run"
   },
   "devDependencies": {
+    "@types/node": "^22.20.4",
     "typescript": "^6",
     "vitest": "^4"
   },

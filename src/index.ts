@@ -20,6 +20,8 @@ export * as sentry from "./sentry.js";
 export * as changelog from "./changelog.js";
 /** The Telegram hub: tell HQ, and HQ's bot tells our team and the client's own group. */
 export * as notify from "./notify.js";
+/** A press on an app's Telegram button, relayed by HQ and signed (server only). */
+export * as press from "./press.js";
 /** The one way an app talks to a model: strict JSON, nothing kept, a backup model. */
 export * as ai from "./ai.js";
 /** The client's brain, kept once in HQ and read by every writer that speaks for them. */
@@ -34,7 +36,8 @@ export type { TelegramConfig, Post, TelegramResult } from "./telegram.js";
 export type { Country } from "./phone.js";
 export type { CronConfig } from "./cron.js";
 export type { ChangelogEntry, FeedConfig, FeedResult, AuditConfig, AuditResult } from "./changelog.js";
-export type { NotifyConfig, NotifyEvent, NotifyResult } from "./notify.js";
+export type { NotifyConfig, NotifyEvent, NotifyResult, NotifyButton } from "./notify.js";
+export type { Press, PressAnswer } from "./press.js";
 export type { AiConfig, AiUsage, AskJson, HqAiConfig } from "./ai.js";
 export type { BrainConfig, BrainLine, BrainResult } from "./brain.js";
 export type { ReviewsConfig, ClientReview, ReviewPlace, ReviewsResult, ReviewPress, PressResult, ReviewStatus, MonthScore } from "./reviews.js";
