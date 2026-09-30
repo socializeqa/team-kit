@@ -127,6 +127,23 @@ const brain = await readBrain({ key: process.env.SOCIALIZE_NOTIFY_KEY! }, { bran
 const system = brain.ok ? `${houseRules}\n\n${brain.text}` : houseRules;
 ```
 
+## Answering the client's Google reviews
+
+HQ pulls each location's Google reviews through Metricool every half hour
+and drafts every reply from the client's brain. A client's own panel reads
+the same reviews with its hub key and answers them: every press names the
+person who made it, and HQ's Reviews room sees the same rows.
+
+```ts
+import { pressReview, readReviews, monthlyScores } from "@socialize/team-kit/reviews";
+
+const key = process.env.SOCIALIZE_NOTIFY_KEY!;
+const { reviews = [] } = await readReviews({ key });
+await pressReview({ key }, { action: "save", id, reply, lesson: "Never call the brunch cheap", by: "Dina" });
+await pressReview({ key }, { action: "post", ids: [id], by: "Dina" }); // read back from Google before it says posted
+const trend = monthlyScores(reviews.filter((r) => r.place === "West Bay"), 12);
+```
+
 ## Keeping keys out of Sentry
 
 Some addresses are keys: a client's paper, a customer's tracker, an invite

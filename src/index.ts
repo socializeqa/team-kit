@@ -24,6 +24,8 @@ export * as notify from "./notify.js";
 export * as ai from "./ai.js";
 /** The client's brain, kept once in HQ and read by every writer that speaks for them. */
 export * as brain from "./brain.js";
+/** The client's Google reviews, kept in HQ: read them, answer them, post them. */
+export * as reviews from "./reviews.js";
 /** What a Sentry report never carries: cookies, and the keys some addresses hold. */
 export * as scrub from "./scrub.js";
 
@@ -35,4 +37,5 @@ export type { ChangelogEntry, FeedConfig, FeedResult, AuditConfig, AuditResult }
 export type { NotifyConfig, NotifyEvent, NotifyResult } from "./notify.js";
 export type { AiConfig, AiUsage, AskJson, HqAiConfig } from "./ai.js";
 export type { BrainConfig, BrainLine, BrainResult } from "./brain.js";
+export type { ReviewsConfig, ClientReview, ReviewPlace, ReviewsResult, ReviewPress, PressResult, ReviewStatus, MonthScore } from "./reviews.js";
 export type { ScrubRules } from "./scrub.js";
