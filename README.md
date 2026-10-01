@@ -154,11 +154,126 @@ Mex has no Al Sadd group for operations") and management's as "management
 group", so an app that falls back to WhatsApp when its floor did not hear
 can tell the two apart.
 
+### One design for every card (v2.11.0)
+
+HQ lays every Telegram message out the same way, the house's and every
+app's: the emoji and a bold title, a one-line summary in italics, a fact a
+line ("emoji, two spaces, the value"), the smart lines, the status in bold,
+the long part folded away, the tags last. Never monospace. An event fills
+the parts it has:
+
+```ts
+await notify(hub, {
+  to: "both",
+  key: "booking.new",
+  scope: "west-bay",
+  emoji: "🍽️",
+  title: "New booking · West Bay",
+  subtitle: "Table for 4, tonight at 20:30",
+  lines: [
+    { icon: "👤", label: "Sara Al-Kuwari" },          // a label alone stands bold
+    { icon: "📞", value: "+974 5500 0000" },
+    { icon: "👥", value: "4 guests · 🎂 birthday" },
+    { icon: "💬", value: "“Window table if possible”" }, // in quotes: italics
+  ],
+  context: [
+    { icon: "⭐", value: "Returning guest — 3rd visit, last on 12 Sep" },
+    { icon: "📊", value: "Tonight at West Bay: 18 bookings · 64 guests" },
+  ],
+  status: "⏳ Waiting for approval",
+  details: { title: "🧾 Guest history", lines: ["12 Sep — 2 guests, arrived", "28 Aug — 4 guests, arrived"] },
+  about: { kind: "booking", id: booking.id },
+});
+```
+
+which Telegram shows as
+
+```
+🍽️ New booking · West Bay
+Table for 4, tonight at 20:30
+
+👤  Sara Al-Kuwari
+📞  +974 5500 0000
+👥  4 guests · 🎂 birthday
+💬  “Window table if possible”
+
+⭐  Returning guest — 3rd visit, last on 12 Sep
+📊  Tonight at West Bay: 18 bookings · 64 guests
+
+⏳  Waiting for approval
+┃ 🧾 Guest history            (folded until tapped)
+┃ • 12 Sep — 2 guests, arrived
+#SenorritasTexMex  #WestBay
+```
+
+`tags` adds hashtags after the client's (the branch's own comes from
+`scope`). Sizes are cut, never trusted: six `context` lines, a 120-letter
+`status`, 40 `details` lines of 300, four `tags`. A card past Telegram's
+4,096 characters gives way from the folded part first.
+
+### Living cards (v2.11.0)
+
+A booking used to be a new message for every step. With `follow: "update"`
+and the same `about`, HQ rewrites the card it already said in each room:
+the update's `status` replaces the status line and its `timeline_line` is
+added under the facts. A new status means the thing moved on, so the
+buttons that asked about it come down (the links stay) unless the update
+brings its own; an update with only a line keeps everything. With no card
+to rewrite (none yet, or deleted by hand), the update is said as a card of
+its own.
+
+```ts
+// Approved in the app: the card in Al Sadd's group, management's and our topic all say so.
+await notify(hub, {
+  to: "both",
+  key: "booking.approved",
+  scope: booking.branch.slug,
+  title: "Booking approved",
+  about: { kind: "booking", id: booking.id },
+  follow: "update",
+  status: "✅ Approved",
+  timeline_line: `✅ Approved by ${staff.name} · ${clock(now)}`,
+});
+
+// A line only: the status and the buttons stay.
+await notify(hub, { to: "client", key: "booking.reminded", scope, title: "Reminder sent", about, follow: "update", timeline_line: "📩 Reminder sent · 19:45" });
+```
+
+A press on the card settles it the same way: the app's answer becomes a
+line of its timeline ("✅ Booking confirmed · Sam · 14:05").
+
+### "I'll handle it" and escalation (v2.11.0)
+
+`claim: true` adds a **🙋 I'll handle it** button where the buttons go (the
+client's own group, the branch's when scoped). The first to press takes
+it: the card's status becomes "🙋 Dina is handling it · 18:02" and the
+button comes down. HQ answers it itself; the app is not called.
+
+`escalate: { after_minutes }` (5 to 120, only with buttons or the claim)
+says how long the card may wait for a press. Past it HQ posts one nudge
+under the card ("⏰ Still waiting — 10 min"); after twice as long it tells
+the client's management group (for a branch's card) and our team, without
+buttons. A press, a claim or an update with a new status stops it. Never
+in the client's quiet hours unless the event is `urgent`.
+
+```ts
+await notify(hub, {
+  to: "both",
+  key: "booking.new",
+  scope: booking.branch.slug,
+  title: "New booking",
+  about: { kind: "booking", id: booking.id },
+  buttons: [{ label: "Approve", action: "booking.approve", payload: { booking: booking.id }, style: "go" }],
+  claim: true,
+  escalate: { after_minutes: 10 },
+});
+```
+
 ### Buttons back to the app (v2.8.0)
 
 An event can carry up to three buttons. When someone in the room presses
-one, HQ posts the press to the app's **callback**, signed, and shows the
-app's answer under the message: "✅ Booking confirmed — Sam, 14:05", the
+one, HQ posts the press to the app's **callback**, signed, and writes the
+app's answer on the card: "✅ Booking confirmed · Sam · 14:05", the
 buttons gone. Anyone who can see the message may press (the group is the
 trust boundary); HQ names them in the press. A button works once, for a
 week. The callback address and its secret are set in HQ → Settings →

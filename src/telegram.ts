@@ -26,10 +26,10 @@ export interface Post {
   chatId: string;
   /** Bolded first line. */
   title: string;
-  /** The line under it — usually who or what it concerns. */
+  /** One line in italics under it: what it is, in a sentence. */
   subtitle?: string;
-  /** Facts, one per line. */
-  lines?: readonly { icon?: string; label?: string; value: string }[];
+  /** Facts, one per line. A label alone stands bold. */
+  lines?: readonly { icon?: string; label?: string; value?: string }[];
   /** Small closing line: when, and by whom. */
   note?: string;
   /** Becomes a button. */
@@ -47,17 +47,23 @@ function escape(value: string): string {
   return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-/** Title, facts, closing note — assembled the same way every time. */
+/**
+ * The one design HQ lays every Telegram card out in (v2.11.0): the emoji and
+ * the title in bold, the summary in italics, then a fact a line ("emoji, two
+ * spaces, the value", a label in bold before it), then the closing note in
+ * italics. HQ's own renderer adds the status, the folded part and the tags;
+ * an app speaks through `notify` and gets those there.
+ */
 export function render(post: Post): string {
-  const parts = [`${post.emoji ? `${post.emoji} ` : ""}<b>${escape(post.title)}</b>`];
-  if (post.subtitle) parts.push(escape(post.subtitle));
-  for (const line of post.lines ?? []) {
-    const icon = line.icon ? `${line.icon} ` : "";
-    const label = line.label ? `<b>${escape(line.label)}</b> ` : "";
-    parts.push(`${icon}${label}${escape(line.value)}`);
-  }
-  if (post.note) parts.push(`\n<i>${escape(post.note)}</i>`);
-  return parts.join("\n");
+  const head = [`${post.emoji ? `${post.emoji} ` : ""}<b>${escape(post.title)}</b>`];
+  if (post.subtitle) head.push(`<i>${escape(post.subtitle)}</i>`);
+  const facts = (post.lines ?? []).flatMap((line) => {
+    const words = [line.label ? `<b>${escape(line.label)}</b>` : "", line.value ? escape(line.value) : ""].filter(Boolean).join(" ");
+    if (!words) return [];
+    return [line.icon ? `${line.icon}  ${words}` : words];
+  });
+  const groups = [head, facts, post.note ? [`<i>${escape(post.note)}</i>`] : []].filter((group) => group.length);
+  return groups.map((group) => group.join("\n")).join("\n\n");
 }
 
 export async function send(

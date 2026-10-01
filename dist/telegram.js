@@ -14,19 +14,25 @@
 function escape(value) {
     return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
-/** Title, facts, closing note — assembled the same way every time. */
+/**
+ * The one design HQ lays every Telegram card out in (v2.11.0): the emoji and
+ * the title in bold, the summary in italics, then a fact a line ("emoji, two
+ * spaces, the value", a label in bold before it), then the closing note in
+ * italics. HQ's own renderer adds the status, the folded part and the tags;
+ * an app speaks through `notify` and gets those there.
+ */
 export function render(post) {
-    const parts = [`${post.emoji ? `${post.emoji} ` : ""}<b>${escape(post.title)}</b>`];
+    const head = [`${post.emoji ? `${post.emoji} ` : ""}<b>${escape(post.title)}</b>`];
     if (post.subtitle)
-        parts.push(escape(post.subtitle));
-    for (const line of post.lines ?? []) {
-        const icon = line.icon ? `${line.icon} ` : "";
-        const label = line.label ? `<b>${escape(line.label)}</b> ` : "";
-        parts.push(`${icon}${label}${escape(line.value)}`);
-    }
-    if (post.note)
-        parts.push(`\n<i>${escape(post.note)}</i>`);
-    return parts.join("\n");
+        head.push(`<i>${escape(post.subtitle)}</i>`);
+    const facts = (post.lines ?? []).flatMap((line) => {
+        const words = [line.label ? `<b>${escape(line.label)}</b>` : "", line.value ? escape(line.value) : ""].filter(Boolean).join(" ");
+        if (!words)
+            return [];
+        return [line.icon ? `${line.icon}  ${words}` : words];
+    });
+    const groups = [head, facts, post.note ? [`<i>${escape(post.note)}</i>`] : []].filter((group) => group.length);
+    return groups.map((group) => group.join("\n")).join("\n\n");
 }
 export async function send(config, post) {
     try {

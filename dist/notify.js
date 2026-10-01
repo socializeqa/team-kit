@@ -13,7 +13,11 @@
  * An event may carry buttons; a press comes back to the app's callback,
  * which reads it with `verifyPress` from `@socialize/team-kit/press`
  * (v2.8.0). A client with more than one branch keeps a group per branch:
- * the event names its branch with `scope` (v2.10.0).
+ * the event names its branch with `scope` (v2.10.0). Since v2.11.0 an event
+ * fills the one design every Telegram card is laid out in (`context`,
+ * `status`, `details`, `tags`), keeps one living card up to date
+ * (`follow: "update"` with `timeline_line`), can be claimed ("I'll handle
+ * it") and can escalate when nobody presses in time.
  */
 export const HUB_URL = "https://socialize.qa/api/notify";
 /** A branch key as HQ reads it: "al-sadd", "west-bay". */

@@ -42,6 +42,42 @@ describe("notify", () => {
     expect(JSON.parse(String(init.body))).toEqual(event);
   });
 
+  it("carries the design, a living card's update, the claim and the escalation to HQ as they are", async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ ok: true, sent: 2, missing: [] }), { status: 200 }));
+    vi.stubGlobal("fetch", fetch);
+    const booked = {
+      to: "both" as const,
+      key: "booking.new",
+      scope: "west-bay",
+      emoji: "🍽️",
+      title: "New booking · West Bay",
+      subtitle: "Table for 4, tonight at 20:30",
+      lines: [{ icon: "👤", label: "Sara Al-Kuwari" }, { icon: "💬", value: "“Window table if possible”" }],
+      context: [{ icon: "⭐", value: "Returning guest — 3rd visit, last on 12 Sep" }],
+      status: "⏳ Waiting for approval",
+      details: { title: "🧾 Guest history", lines: ["12 Sep — 2 guests, arrived"] },
+      tags: ["Birthday"],
+      about: { kind: "booking", id: "b1" },
+      buttons: [{ label: "Approve", action: "booking.approve", payload: { booking: "b1" }, style: "go" as const }],
+      claim: true,
+      escalate: { after_minutes: 10 },
+    };
+    await notify({ key: "szn_abc" }, booked);
+    const update = {
+      to: "both" as const,
+      key: "booking.approved",
+      scope: "west-bay",
+      title: "Booking approved",
+      about: { kind: "booking", id: "b1" },
+      follow: "update" as const,
+      status: "✅ Approved",
+      timeline_line: "✅ Approved by Mohamed · 18:02",
+    };
+    await notify({ key: "szn_abc" }, update);
+    const bodies = fetch.mock.calls.map((call) => JSON.parse(String((call as unknown as [string, RequestInit])[1].body)));
+    expect(bodies).toEqual([booked, update]);
+  });
+
   it("knows a branch key the way HQ reads it", () => {
     for (const key of ["al-sadd", "west-bay", "doha2", "a"]) expect(SCOPE_KEY.test(key)).toBe(true);
     for (const key of ["Al Sadd", "al_sadd", "", "x".repeat(41), "west bay"]) expect(SCOPE_KEY.test(key)).toBe(false);

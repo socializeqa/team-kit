@@ -134,9 +134,9 @@ describe("telegram", () => {
       lines: [{ icon: "🧾", label: "Invoice", value: "INV-2026-014" }],
       note: "by Damine",
     });
-    expect(text.split("\n")[0]).toBe("💰 <b>Payment received</b>");
-    expect(text).toContain("🧾 <b>Invoice</b> INV-2026-014");
-    expect(text.trimEnd().endsWith("<i>by Damine</i>")).toBe(true);
+    expect(text).toBe(
+      "💰 <b>Payment received</b>\n<i>Leona Cafe</i>\n\n🧾  <b>Invoice</b> INV-2026-014\n\n<i>by Damine</i>",
+    );
   });
 });
 

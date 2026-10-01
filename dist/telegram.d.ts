@@ -23,13 +23,13 @@ export interface Post {
     chatId: string;
     /** Bolded first line. */
     title: string;
-    /** The line under it — usually who or what it concerns. */
+    /** One line in italics under it: what it is, in a sentence. */
     subtitle?: string;
-    /** Facts, one per line. */
+    /** Facts, one per line. A label alone stands bold. */
     lines?: readonly {
         icon?: string;
         label?: string;
-        value: string;
+        value?: string;
     }[];
     /** Small closing line: when, and by whom. */
     note?: string;
@@ -45,7 +45,13 @@ export interface Post {
     /** Leads the title. */
     emoji?: string;
 }
-/** Title, facts, closing note — assembled the same way every time. */
+/**
+ * The one design HQ lays every Telegram card out in (v2.11.0): the emoji and
+ * the title in bold, the summary in italics, then a fact a line ("emoji, two
+ * spaces, the value", a label in bold before it), then the closing note in
+ * italics. HQ's own renderer adds the status, the folded part and the tags;
+ * an app speaks through `notify` and gets those there.
+ */
 export declare function render(post: Post): string;
 export declare function send(config: TelegramConfig, post: Post): Promise<TelegramResult>;
 /**

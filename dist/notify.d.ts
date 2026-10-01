@@ -13,7 +13,11 @@
  * An event may carry buttons; a press comes back to the app's callback,
  * which reads it with `verifyPress` from `@socialize/team-kit/press`
  * (v2.8.0). A client with more than one branch keeps a group per branch:
- * the event names its branch with `scope` (v2.10.0).
+ * the event names its branch with `scope` (v2.10.0). Since v2.11.0 an event
+ * fills the one design every Telegram card is laid out in (`context`,
+ * `status`, `details`, `tags`), keeps one living card up to date
+ * (`follow: "update"` with `timeline_line`), can be claimed ("I'll handle
+ * it") and can escalate when nobody presses in time.
  */
 export interface NotifyConfig {
     /** The app's key from HQ. */
@@ -40,6 +44,14 @@ export interface NotifyButton {
     /** "go" paints it green, "stop" red. */
     style?: "go" | "stop";
 }
+/** A fact on the card: an emoji, then the value. A label alone stands bold (the guest's name). */
+export interface NotifyLine {
+    icon?: string;
+    /** Bold before the value, only when the value alone is unclear ("Amount QAR 6,500"). */
+    label?: string;
+    /** Wrapped in quotes (“Window table if possible”), it is said in italics. */
+    value?: string;
+}
 export interface NotifyEvent {
     /** Our team, the client's own group, or both. Defaults to the team. */
     to?: "team" | "client" | "both";
@@ -63,16 +75,32 @@ export interface NotifyEvent {
      * unscoped.
      */
     scope?: string;
-    /** Bolded first line. */
+    /** Bolded first line, after the emoji. */
     title: string;
-    /** The line under it: who or what it concerns. */
+    /** One line in italics under it: what it is, in a sentence. */
     subtitle?: string;
-    /** Facts, one per line. */
-    lines?: readonly {
+    /** Facts, one per line, up to 15. */
+    lines?: readonly NotifyLine[];
+    /**
+     * What the app knows about it, a group under the facts, up to six (v2.11.0):
+     * `{ icon: "⭐", value: "Returning guest — 3rd visit, last on 12 Sep" }`.
+     */
+    context?: readonly {
         icon?: string;
-        label?: string;
         value: string;
     }[];
+    /** Where it stands, in bold (v2.11.0): "⏳ Waiting for approval". A living card replaces it. */
+    status?: string;
+    /**
+     * The long part, folded until someone opens it (v2.11.0): a guest's
+     * history, a note. Several lines get a bullet each; up to 40 lines.
+     */
+    details?: {
+        title?: string;
+        lines: readonly string[];
+    };
+    /** Tags after the client's, up to four (v2.11.0): "West Bay" → #WestBay. The branch's own comes from `scope`. */
+    tags?: readonly string[];
     /** A button into the app itself, https only. */
     link?: {
         label: string;
@@ -87,12 +115,36 @@ export interface NotifyEvent {
     tier?: "ping" | "silent";
     /** Still buzzes in the quiet hours: only for something broken right now. */
     urgent?: boolean;
-    /** "reply" threads news of the same `about`; "edit" rewrites an open alert. */
-    follow?: "reply" | "edit";
+    /**
+     * "reply" threads news of the same `about`; "edit" rewrites an open alert;
+     * "update" (v2.11.0) rewrites the card about it in each room instead of
+     * posting: `status` replaces its status line and `timeline_line` is added
+     * to its timeline. A new status means the thing moved on, so the buttons
+     * that asked about it come down. With no card to rewrite, it is said as a
+     * card of its own. Needs `about`.
+     */
+    follow?: "reply" | "edit" | "update";
+    /** One stamped line for a living card's timeline (v2.11.0): "🟢 Arrived · 20:34". */
+    timeline_line?: string;
     /** Leads the title. */
     emoji?: string;
     /** Up to three buttons that call the app back when pressed. */
     buttons?: readonly NotifyButton[];
+    /**
+     * Adds "🙋 I'll handle it" where the buttons go, the client's own group
+     * (v2.11.0): the first to press takes it and the card says who. HQ
+     * answers it itself; the app is not called.
+     */
+    claim?: boolean;
+    /**
+     * How long the buttons (or the claim) may wait for a press, 5 to 120
+     * minutes (v2.11.0). Past it HQ nudges under the card ("⏰ Still waiting —
+     * 10 min"); after twice as long it tells the client's management group
+     * and our team. Never in the quiet hours unless `urgent`.
+     */
+    escalate?: {
+        after_minutes: number;
+    };
 }
 export interface NotifyResult {
     ok: boolean;
