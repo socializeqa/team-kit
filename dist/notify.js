@@ -12,9 +12,12 @@
  *
  * An event may carry buttons; a press comes back to the app's callback,
  * which reads it with `verifyPress` from `@socialize/team-kit/press`
- * (v2.8.0).
+ * (v2.8.0). A client with more than one branch keeps a group per branch:
+ * the event names its branch with `scope` (v2.10.0).
  */
 export const HUB_URL = "https://socialize.qa/api/notify";
+/** A branch key as HQ reads it: "al-sadd", "west-bay". */
+export const SCOPE_KEY = /^[a-z0-9-]{1,40}$/;
 export async function notify(config, event) {
     if (!config.key)
         return { ok: false, error: "No hub key." };

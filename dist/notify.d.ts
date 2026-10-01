@@ -12,7 +12,8 @@
  *
  * An event may carry buttons; a press comes back to the app's callback,
  * which reads it with `verifyPress` from `@socialize/team-kit/press`
- * (v2.8.0).
+ * (v2.8.0). A client with more than one branch keeps a group per branch:
+ * the event names its branch with `scope` (v2.10.0).
  */
 export interface NotifyConfig {
     /** The app's key from HQ. */
@@ -52,6 +53,16 @@ export interface NotifyEvent {
      * own goes to the client's group for all.
      */
     stream?: "ops" | "money" | "hiring";
+    /**
+     * The branch it belongs to, for a client with a group per branch (v2.10.0):
+     * the key HQ holds for that branch, lowercase letters, digits and dashes,
+     * like "al-sadd" (`SCOPE_KEY`). A scoped event goes to that branch's group
+     * and to the client's management group, and its buttons go up in the
+     * branch's group only. Left out, only the management group hears it. A key
+     * HQ does not hold for the client is dropped, and the event goes as if
+     * unscoped.
+     */
+    scope?: string;
     /** Bolded first line. */
     title: string;
     /** The line under it: who or what it concerns. */
@@ -92,4 +103,6 @@ export interface NotifyResult {
     error?: string;
 }
 export declare const HUB_URL = "https://socialize.qa/api/notify";
+/** A branch key as HQ reads it: "al-sadd", "west-bay". */
+export declare const SCOPE_KEY: RegExp;
 export declare function notify(config: NotifyConfig, event: NotifyEvent): Promise<NotifyResult>;

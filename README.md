@@ -101,6 +101,59 @@ await notify(hub, { to: "client", key: "application.new", title: "New CV: Line c
 await notify(hub, { to: "client", key: "shift.swap", stream: "ops", title: "Sara swapped Friday" });
 ```
 
+### A group per branch (v2.10.0)
+
+A client with more than one branch keeps a Telegram group for each branch's
+staff and one for management (owners and managers, all branches). HQ holds
+the branch keys for the client (Settings → Telegram → Projects, the
+project's branches); the app names the branch an event belongs to with
+`scope`, using the same key: lowercase letters, digits and dashes
+(`SCOPE_KEY`), usually the branch's own slug.
+
+- **With a `scope`**: the branch's group hears it (its stream's group for
+  that branch, else that branch's group for all) and so does management (its
+  stream's group, else its group for all). Buttons go up in the branch's
+  group only; management's copy says where they are.
+- **Without one**: management alone hears it, buttons and all. Use this for
+  news that belongs to no branch (a broadcast finished, what's new in the
+  app).
+- A key HQ does not hold for the client is dropped (named in HQ's answer and
+  told to our team) and the event goes as if it had none, so nothing is
+  lost. A branch with no group yet is named in `missing`.
+
+Señorritas Tex-Mex, with Al Sadd and West Bay:
+
+```ts
+const hub = { key: process.env.SOCIALIZE_NOTIFY_KEY! };
+
+// Al Sadd's staff and management hear it; Confirm and Decline sit in Al Sadd's group.
+await notify(hub, {
+  to: "both",
+  key: "booking.new",
+  scope: booking.branch.slug, // "al-sadd"
+  title: "New booking",
+  subtitle: "Sam, 6 guests, tonight 9 PM",
+  about: { kind: "booking", id: booking.id },
+  buttons: [
+    { label: "Confirm", action: "booking.confirm", payload: { booking: booking.id }, style: "go" },
+    { label: "Decline", action: "booking.decline", payload: { booking: booking.id }, style: "stop" },
+  ],
+});
+
+// One digest per branch, each to its own branch (and management).
+for (const branch of branches) {
+  await notify(hub, { to: "client", key: "digest.daily", scope: branch.slug, title: `${branch.name} today`, tier: "silent" });
+}
+
+// No branch: management only.
+await notify(hub, { to: "client", key: "broadcast.finished", title: "The October offer reached 1,240 guests" });
+```
+
+`missing` then names a branch's group the way HQ says it ("Señorritas Tex
+Mex has no Al Sadd group for operations") and management's as "management
+group", so an app that falls back to WhatsApp when its floor did not hear
+can tell the two apart.
+
 ### Buttons back to the app (v2.8.0)
 
 An event can carry up to three buttons. When someone in the room presses
