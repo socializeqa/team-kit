@@ -19,5 +19,16 @@ export declare function formatAmount(amount: number): string;
  * alter after signing, which is the whole reason receipts do this.
  */
 export declare function qarInWords(amount: number): string;
+/**
+ * The amount in Arabic words, the counterpart of `qarInWords` on a
+ * bilingual paper: "فقط ألف ومائتان وخمسون ريالاً قطرياً لا غير" for 1250.
+ *
+ * Arabic changes the noun with the number (ريال واحد, ريالان, ثلاثة ريالات,
+ * أحد عشر ريالاً, مائة ريال) and a dual followed by a noun drops its ن
+ * (ألفا ريال, مائتا ألف), so the words are built with the currency rather
+ * than having it appended. Hundreds are spelled مائة, the way Qatari bank
+ * papers print them.
+ */
+export declare function qarInWordsAr(amount: number): string;
 /** A line's own total, before any document-level discount. */
 export declare function lineTotal(quantity: number, unitPrice: number): number;

@@ -1,6 +1,6 @@
 {
   "name": "@socialize/team-kit",
-  "version": "2.8.0",
+  "version": "2.9.0",
   "description": "The plumbing every Socialize project shares: WhatsApp Cloud, Telegram, the Telegram hub, the AI connection, the client brain, the client's Google reviews, phone, money, country and Sentry cron helpers.",
   "license": "MIT",
   "type": "module",

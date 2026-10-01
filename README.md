@@ -55,6 +55,7 @@ await telegram.send({ token: process.env.TELEGRAM_BOT_TOKEN! }, {
 
 phone.format("97450368805");   // "+974 5036 8805"
 money.qarInWords(1250);        // "Qatari Riyals One Thousand Two Hundred Fifty Only"
+money.qarInWordsAr(1250);      // "فقط ألف ومائتان وخمسون ريالاً قطرياً لا غير" (v2.9.0)
 ```
 
 Nothing throws. Sends answer with `{ ok, id?, error? }` — a message that fails

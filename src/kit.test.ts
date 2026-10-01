@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatAmount, formatQAR, lineTotal, qarInWords, round2 } from "./money.js";
+import { formatAmount, formatQAR, lineTotal, qarInWords, qarInWordsAr, round2 } from "./money.js";
 import { COUNTRIES, digits, format, parse, whatsappLink } from "./phone.js";
 import { jobFinished, watched } from "./cron.js";
 import * as sentryAlias from "./sentry.js";
@@ -30,6 +30,48 @@ describe("money", () => {
 
   it("carries dirhams when there are any (the riyal is 100 dirhams)", () => {
     expect(qarInWords(10.5)).toBe("Qatari Riyals Ten and Fifty Dirhams Only");
+  });
+
+  it("says the amount in Arabic, with the noun the number takes", () => {
+    const ar = (n: number) => qarInWordsAr(n).replace(/^فقط /, "").replace(/ لا غير$/, "");
+    expect(qarInWordsAr(1250)).toBe("فقط ألف ومائتان وخمسون ريالاً قطرياً لا غير");
+    expect(ar(0)).toBe("صفر ريال قطري");
+    expect(ar(1)).toBe("ريال قطري واحد");
+    expect(ar(2)).toBe("ريالان قطريان");
+    expect(ar(3)).toBe("ثلاثة ريالات قطرية");
+    expect(ar(10)).toBe("عشرة ريالات قطرية");
+    expect(ar(11)).toBe("أحد عشر ريالاً قطرياً");
+    expect(ar(12)).toBe("اثنا عشر ريالاً قطرياً");
+    expect(ar(25)).toBe("خمسة وعشرون ريالاً قطرياً");
+    expect(ar(100)).toBe("مائة ريال قطري");
+    expect(ar(103)).toBe("مائة وثلاثة ريالات قطرية");
+    expect(ar(115)).toBe("مائة وخمسة عشر ريالاً قطرياً");
+  });
+
+  it("drops the dual's ن before a noun, and counts thousands the Arabic way", () => {
+    const ar = (n: number) => qarInWordsAr(n).replace(/^فقط /, "").replace(/ لا غير$/, "");
+    expect(ar(200)).toBe("مائتا ريال قطري");
+    expect(ar(1000)).toBe("ألف ريال قطري");
+    expect(ar(1200)).toBe("ألف ومائتا ريال قطري");
+    expect(ar(2000)).toBe("ألفا ريال قطري");
+    expect(ar(2500)).toBe("ألفان وخمسمائة ريال قطري");
+    expect(ar(3000)).toBe("ثلاثة آلاف ريال قطري");
+    expect(ar(10000)).toBe("عشرة آلاف ريال قطري");
+    expect(ar(25000)).toBe("خمسة وعشرون ألف ريال قطري");
+    expect(ar(25500)).toBe("خمسة وعشرون ألفاً وخمسمائة ريال قطري");
+    expect(ar(25015)).toBe("خمسة وعشرون ألفاً وخمسة عشر ريالاً قطرياً");
+    expect(ar(200000)).toBe("مائتا ألف ريال قطري");
+    expect(ar(1_000_000)).toBe("مليون ريال قطري");
+    expect(ar(2_000_000)).toBe("مليونا ريال قطري");
+    expect(ar(2_990_000)).toBe("مليونان وتسعمائة وتسعون ألف ريال قطري");
+  });
+
+  it("carries dirhams in Arabic too", () => {
+    expect(qarInWordsAr(10.5)).toBe("فقط عشرة ريالات قطرية وخمسون درهماً لا غير");
+    // Alone, the dirham names its country: a bare درهم reads as the UAE's.
+    expect(qarInWordsAr(0.25)).toBe("فقط خمسة وعشرون درهماً قطرياً لا غير");
+    expect(qarInWordsAr(0.01)).toBe("فقط درهم قطري واحد لا غير");
+    expect(qarInWordsAr(1.01)).toBe("فقط ريال قطري واحد ودرهم واحد لا غير");
   });
 
   it("multiplies a line without drifting", () => {
