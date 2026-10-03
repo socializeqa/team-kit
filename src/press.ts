@@ -10,7 +10,7 @@
  * Server only: it signs with Node's crypto.
  */
 
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { fresh, readSigned } from "./signed.js";
 
 /** A press on one of the app's buttons, as HQ posts it to the app's callback. */
 export interface Press {
@@ -36,8 +36,6 @@ export interface PressAnswer {
   text?: string;
 }
 
-const SIGNATURE = /^sha256=([0-9a-f]{64})$/;
-
 /**
  * Reads a press HQ posted to the app's callback, or null when it is not one
  * HQ signed just now. Pass the body exactly as it arrived (`await
@@ -53,24 +51,7 @@ export function verifyPress(
   secret: string,
   { maxAgeSeconds = 300 }: { maxAgeSeconds?: number } = {},
 ): Press | null {
-  if (!secret || typeof rawBody !== "string") return null;
-  const match = SIGNATURE.exec((headers.get("x-socialize-signature") ?? "").trim());
-  if (!match?.[1]) return null;
-  const expected = createHmac("sha256", secret).update(rawBody).digest();
-  const given = Buffer.from(match[1], "hex");
-  if (given.length !== expected.length || !timingSafeEqual(given, expected)) return null;
-
-  const now = Date.now();
-  const stamp = Number(headers.get("x-socialize-timestamp"));
-  if (!Number.isFinite(stamp) || Math.abs(now / 1000 - stamp) > maxAgeSeconds) return null;
-
-  let body: unknown;
-  try {
-    body = JSON.parse(rawBody);
-  } catch {
-    return null;
-  }
-  const press = body as Partial<Press> | null;
+  const press = readSigned(rawBody, headers, secret, maxAgeSeconds) as Partial<Press> | null;
   if (
     !press ||
     typeof press.id !== "string" ||
@@ -80,11 +61,9 @@ export function verifyPress(
     Array.isArray(press.payload) ||
     typeof press.by?.telegram_id !== "number" ||
     typeof press.by?.name !== "string" ||
-    typeof press.at !== "string"
+    !fresh(press.at, maxAgeSeconds)
   ) {
     return null;
   }
-  const at = Date.parse(press.at);
-  if (!Number.isFinite(at) || Math.abs(now - at) > maxAgeSeconds * 1000) return null;
   return press as Press;
 }

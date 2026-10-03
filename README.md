@@ -343,6 +343,44 @@ export async function POST(request: Request) {
   `x-socialize-timestamp` and by its own signed `at` (`maxAgeSeconds` to
   change it). It uses Node's crypto: call it from a server route.
 
+### HQ asking the app (v2.12.0)
+
+Some numbers live only in the client's app: the bookings a restaurant took,
+the requests a company logged. HQ keeps no copy; when the monthly report is
+prepared on the 5th it asks the app, and the app answers from its own
+records. The question goes to `/api/hub/ask` on the host of the app's
+callback, signed with the same callback secret as a press, and the answer
+comes back as JSON within twenty seconds.
+
+```ts
+// app/api/hub/ask/route.ts
+import { askedMonth, verifyAsk, BOOKINGS_QUESTION, type AskAnswer, type BookingRow } from "@socialize/team-kit/ask";
+
+export async function POST(request: Request) {
+  const raw = await request.text(); // before any JSON parsing: the signature is over these bytes
+  const ask = verifyAsk(raw, request.headers, process.env.SOCIALIZE_HUB_CALLBACK_SECRET ?? "");
+  if (!ask) return Response.json({ ok: false, error: "unsigned" }, { status: 401 });
+
+  if (ask.question === BOOKINGS_QUESTION) {
+    const month = askedMonth(ask.payload);
+    if (!month) return Response.json({ ok: false, error: "no month" }, { status: 400 });
+    const rows: BookingRow[] = await bookingsFor(month); // that month and the month before
+    return Response.json({ ok: true, data: { rows } } satisfies AskAnswer);
+  }
+  return Response.json({ ok: false, error: `unknown question ${ask.question}` }, { status: 400 });
+}
+```
+
+- **`report.bookings`**, payload `{ month: "2026-09" }`: the bookings made
+  in that month and the month before (Doha time, by the day each was
+  made), one `BookingRow` per month, branch, door and campaign tag. HQ adds
+  them up for the report: by branch, by door, by campaign, and the cost of
+  a booking from each paid door.
+- Read-only, so answering the same question twice is harmless. Answer only
+  aggregates: no guest's name, phone or email ever leaves the app.
+- `verifyAsk` checks the signature and the clock the way `verifyPress`
+  does (five minutes by default).
+
 ## Asking a model
 
 Every AI call in every app goes through one door: OpenRouter, strict JSON

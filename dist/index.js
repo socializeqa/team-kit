@@ -21,6 +21,8 @@ export * as changelog from "./changelog.js";
 export * as notify from "./notify.js";
 /** A press on an app's Telegram button, relayed by HQ and signed (server only). */
 export * as press from "./press.js";
+/** A question HQ asks the app, signed like a press: the month's bookings for the report (server only). */
+export * as ask from "./ask.js";
 /** The one way an app talks to a model: strict JSON, nothing kept, a backup model. */
 export * as ai from "./ai.js";
 /** The client's brain, kept once in HQ and read by every writer that speaks for them. */

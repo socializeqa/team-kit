@@ -22,6 +22,8 @@ export * as changelog from "./changelog.js";
 export * as notify from "./notify.js";
 /** A press on an app's Telegram button, relayed by HQ and signed (server only). */
 export * as press from "./press.js";
+/** A question HQ asks the app, signed like a press: the month's bookings for the report (server only). */
+export * as ask from "./ask.js";
 /** The one way an app talks to a model: strict JSON, nothing kept, a backup model. */
 export * as ai from "./ai.js";
 /** The client's brain, kept once in HQ and read by every writer that speaks for them. */
@@ -38,6 +40,7 @@ export type { CronConfig } from "./cron.js";
 export type { ChangelogEntry, FeedConfig, FeedResult, AuditConfig, AuditResult } from "./changelog.js";
 export type { NotifyConfig, NotifyEvent, NotifyResult, NotifyButton } from "./notify.js";
 export type { Press, PressAnswer } from "./press.js";
+export type { Ask, AskAnswer, BookingRow } from "./ask.js";
 export type { AiConfig, AiUsage, AskJson, HqAiConfig } from "./ai.js";
 export type { BrainConfig, BrainLine, BrainResult } from "./brain.js";
 export type { ReviewsConfig, ClientReview, ReviewPlace, ReviewsResult, ReviewPress, PressResult, ReviewStatus, MonthScore } from "./reviews.js";
