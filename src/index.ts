@@ -32,6 +32,10 @@ export * as brain from "./brain.js";
 export * as reviews from "./reviews.js";
 /** What a Sentry report never carries: cookies, and the keys some addresses hold. */
 export * as scrub from "./scrub.js";
+/** Tell Google a job page is new or gone, through HQ's robot (server only). */
+export * as search from "./search.js";
+/** What became of an email after it left: delivered, bounced, marked as spam. */
+export * as mail from "./mail.js";
 
 export type { WhatsAppConfig, SendResult, TemplateMessage } from "./whatsapp.js";
 export type { TelegramConfig, Post, TelegramResult } from "./telegram.js";
@@ -45,3 +49,5 @@ export type { AiConfig, AiUsage, AskJson, HqAiConfig } from "./ai.js";
 export type { BrainConfig, BrainLine, BrainResult } from "./brain.js";
 export type { ReviewsConfig, ClientReview, ReviewPlace, ReviewsResult, ReviewPress, PressResult, ReviewStatus, MonthScore } from "./reviews.js";
 export type { ScrubRules } from "./scrub.js";
+export type { SearchConfig, PingAsk, PingResult, Pinged } from "./search.js";
+export type { MailConfig, MailEvent, MailFate, Fate, FatesResult } from "./mail.js";

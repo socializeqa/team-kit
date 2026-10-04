@@ -443,6 +443,38 @@ await pressReview({ key }, { action: "post", ids: [id], by: "Dina" }); // read b
 const trend = monthlyScores(reviews.filter((r) => r.place === "West Bay"), 12);
 ```
 
+## Telling Google a job page changed (v2.13.0)
+
+Google reads a page again when it is told to, instead of on its next crawl
+(the Indexing API). The robot allowed to tell it is HQ's, and its key stays
+in HQ: an app asks with its hub key, and HQ pings addresses on that app's own
+domain only. Google takes it for pages carrying `JobPosting` and nothing
+else, and the whole house shares 200 pings a day, so ping an opening when it
+opens, changes or closes, in each of its languages, never the whole site.
+
+```ts
+import { pingGoogle } from "@socialize/team-kit/search";
+
+const key = process.env.SOCIALIZE_NOTIFY_KEY!;
+await pingGoogle({ key }, { urls: ["https://example.qa/en/careers/sales-leasing-agent"] });
+await pingGoogle({ key }, { urls: closedRoleUrls, gone: true }); // the page answers 404 now
+```
+
+## What became of an email (v2.13.0)
+
+Every app sends through the house's Resend account and Resend reports to HQ.
+An app keeps the id Resend answered each send with and asks HQ about it later:
+HQ answers only for letters sent from that app's own domain.
+
+```ts
+import { FATE_WORDS, isTrouble, readFates } from "@socialize/team-kit/mail";
+
+const { fates = {} } = await readFates({ key }, letters.map((l) => l.email_id));
+for (const [id, { fate, why }] of Object.entries(fates)) {
+  if (isTrouble(fate)) console.log(id, FATE_WORDS[fate], why); // "Bounced", the receiving server's words
+}
+```
+
 ## Keeping keys out of Sentry
 
 Some addresses are keys: a client's paper, a customer's tracker, an invite

@@ -12,6 +12,8 @@
  * is passed in; nothing here throws.
  */
 
+import { callHq } from "./hq.js";
+
 export interface ReviewsConfig {
   /** The app's key from HQ, the one `notify` uses. */
   key: string;
@@ -90,21 +92,8 @@ export interface PressResult {
 
 export const REVIEWS_URL = "https://socialize.qa/api/reviews";
 
-async function call<T extends { ok: boolean; error?: string }>(config: ReviewsConfig, init: RequestInit): Promise<T> {
-  if (!config.key) return { ok: false, error: "No hub key." } as T;
-  try {
-    const response = await fetch(config.url ?? REVIEWS_URL, {
-      ...init,
-      headers: { Authorization: `Bearer ${config.key}`, ...(init.body ? { "Content-Type": "application/json" } : {}) },
-      signal: AbortSignal.timeout(config.timeoutMs ?? 20_000),
-    });
-    const body = (await response.json().catch(() => null)) as T | null;
-    if (!body) return { ok: false, error: `HQ answered ${response.status}.` } as T;
-    if (!response.ok || !body.ok) return { ...body, ok: false, error: body.error ?? `HQ answered ${response.status}.` } as T;
-    return body;
-  } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : String(error) } as T;
-  }
+function call<T extends { ok: boolean; error?: string }>(config: ReviewsConfig, init: RequestInit): Promise<T> {
+  return callHq<T>(config.url ?? REVIEWS_URL, config.key, init, config.timeoutMs ?? 20_000);
 }
 
 /** The client's reviews, newest first, and the locations they come from. */

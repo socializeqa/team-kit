@@ -11,6 +11,7 @@
  * activity book and the posted reply carry that name with the app's. Config
  * is passed in; nothing here throws.
  */
+import { callHq } from "./hq.js";
 export const REVIEW_STATUSES = ["new", "draft", "approved", "posted", "skipped", "answered"];
 /** How each standing reads to the people who answer reviews. */
 export const REVIEW_STATUS_WORDS = {
@@ -22,25 +23,8 @@ export const REVIEW_STATUS_WORDS = {
     answered: "Answered on Google",
 };
 export const REVIEWS_URL = "https://socialize.qa/api/reviews";
-async function call(config, init) {
-    if (!config.key)
-        return { ok: false, error: "No hub key." };
-    try {
-        const response = await fetch(config.url ?? REVIEWS_URL, {
-            ...init,
-            headers: { Authorization: `Bearer ${config.key}`, ...(init.body ? { "Content-Type": "application/json" } : {}) },
-            signal: AbortSignal.timeout(config.timeoutMs ?? 20_000),
-        });
-        const body = (await response.json().catch(() => null));
-        if (!body)
-            return { ok: false, error: `HQ answered ${response.status}.` };
-        if (!response.ok || !body.ok)
-            return { ...body, ok: false, error: body.error ?? `HQ answered ${response.status}.` };
-        return body;
-    }
-    catch (error) {
-        return { ok: false, error: error instanceof Error ? error.message : String(error) };
-    }
+function call(config, init) {
+    return callHq(config.url ?? REVIEWS_URL, config.key, init, config.timeoutMs ?? 20_000);
 }
 /** The client's reviews, newest first, and the locations they come from. */
 export async function readReviews(config) {

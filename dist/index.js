@@ -31,3 +31,7 @@ export * as brain from "./brain.js";
 export * as reviews from "./reviews.js";
 /** What a Sentry report never carries: cookies, and the keys some addresses hold. */
 export * as scrub from "./scrub.js";
+/** Tell Google a job page is new or gone, through HQ's robot (server only). */
+export * as search from "./search.js";
+/** What became of an email after it left: delivered, bounced, marked as spam. */
+export * as mail from "./mail.js";
