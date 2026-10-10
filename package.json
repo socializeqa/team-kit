@@ -1,7 +1,7 @@
 {
   "name": "@socialize/team-kit",
-  "version": "2.13.0",
-  "description": "The plumbing every Socialize project shares: WhatsApp Cloud, Telegram, the Telegram hub and HQ's questions to an app, the AI connection, the client brain, the client's Google reviews, Google index pings, email fates, phone, money, country and Sentry cron helpers.",
+  "version": "2.14.0",
+  "description": "The plumbing every Socialize project shares: WhatsApp Cloud, Telegram, the Telegram hub and HQ's questions to an app, the AI connection, the client brain, the client's Google reviews, Google index pings, email fates, the hiring brain, countries, visit source, phone, money and Sentry cron helpers.",
   "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@11.20.0",
@@ -24,7 +24,10 @@
     "./reviews": "./dist/reviews.js",
     "./scrub": "./dist/scrub.js",
     "./search": "./dist/search.js",
-    "./mail": "./dist/mail.js"
+    "./mail": "./dist/mail.js",
+    "./hiring": "./dist/hiring.js",
+    "./countries": "./dist/countries.js",
+    "./source": "./dist/source.js"
   },
   "files": [
     "dist",

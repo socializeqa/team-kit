@@ -35,6 +35,12 @@ export * as scrub from "./scrub.js";
 export * as search from "./search.js";
 /** What became of an email after it left: delivered, bounced, marked as spam. */
 export * as mail from "./mail.js";
+/** Hiring: the stages, the careers checks, the six letters, the AI form fill and first read, erasing, JobPosting. */
+export * as hiring from "./hiring.js";
+/** Countries for public forms: names in every language, search, the home country first. */
+export * as countries from "./countries.js";
+/** Where a visitor came from, kept for the office and said in words. */
+export * as source from "./source.js";
 export type { WhatsAppConfig, SendResult, TemplateMessage } from "./whatsapp.js";
 export type { TelegramConfig, Post, TelegramResult } from "./telegram.js";
 export type { Country } from "./phone.js";

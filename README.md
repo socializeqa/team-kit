@@ -475,6 +475,52 @@ for (const [id, { fate, why }] of Object.entries(fates)) {
 }
 ```
 
+## Hiring (v2.14.0)
+
+One brain for every app's careers pages and hiring room: the stages and the
+moves a panel offers from each, the checks a careers door makes and its
+refusals in the reader's language, where papers are filed, the salary line,
+the six letters (received, invited, trial, offer, hired, rejected) in English,
+Arabic, French, Italian, Russian and Chinese, the interview's calendar file,
+the AI's CV form fill and first read through HQ, when a file is erased,
+Google's JobPosting and the spreadsheet. Each app keeps its own tables,
+routes, careers design and mail dress, and hands in what differs.
+
+```ts
+import { buildLetter, hiringPapers, movesFrom, readCvFill, screenCandidate, dueForErasing } from "@socialize/team-kit/hiring";
+
+const brand = { name: "Example Co", careersUrl: (locale) => `https://example.com/${locale}/careers`, keepMonths: 6 };
+const letter = buildLetter("invited", { name: "Sam Example", role: "Office Manager", details: { day: "2026-11-02", time: "11:00", where: "The office" } }, "ar", brand);
+// letter.subject, .title, .paragraphs, .facts, .dir ("rtl"), .summary (an English line for the story)
+
+const papers = hiringPapers(); // drafts/<uuid>.pdf until the application claims it, then 2026/sam-example-cv-1a2b3c4d.pdf
+movesFrom("interview"); // next, back, skip the trial, hire, let go (asks why)
+
+// The app signs a short-lived link to the PDF and hands in its phone parser.
+const fill = await readCvFill({ key }, { url: signedUrl, toPhone: (raw) => parsePhone(raw) });
+const verdict = await screenCandidate({ key }, { org: "Example Co, a brokerage in Doha.", opening, application, files, today: "10 October 2026" });
+dueForErasing({ stage: "rejected", stageAt, deletedAt: null, erasedAt: null, everHired: false }); // six months from the no itself
+```
+
+Nothing here reads a database or the environment: the app loads the rows,
+saves the results and runs the erase on its own service key (`erasedRow()`
+gives the values that blank a candidate).
+
+## Countries and where a visitor came from (v2.14.0)
+
+```ts
+import { matchesCountry, namedCountries } from "@socialize/team-kit/countries";
+import { getCountries, getCountryCallingCode } from "libphonenumber-js";
+
+const list = namedCountries(getCountries().map((iso) => ({ iso, dial: getCountryCallingCode(iso) })), "ar"); // Qatar first, named in Arabic
+list.filter((c) => matchesCountry(c, "uae"));
+
+import { rememberSource, sourceLabel, visitSource } from "@socialize/team-kit/source";
+rememberSource("site-source"); // on the landing page, in the browser
+form.set("source", JSON.stringify(visitSource("site-source")));
+sourceLabel({ utm_source: "ig", utm_medium: "paid", utm_campaign: "hiring-oct" }); // "Instagram ad · hiring oct"
+```
+
 ## Keeping keys out of Sentry
 
 Some addresses are keys: a client's paper, a customer's tracker, an invite

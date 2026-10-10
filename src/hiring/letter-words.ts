@@ -1,0 +1,525 @@
+/**
+ * The candidate's six letters in every language a careers site speaks, line
+ * for line the same in each. Slots are filled when a letter is built:
+ * {you} and {first} (the first name), {role}, {brand} (the employer), {when},
+ * {deadline}, {validUntil}, {id} (what to bring on the first day), and the
+ * counted spans {reply}, {keep} and {offer} (see counts.ts).
+ *
+ * Arabic never puts a Latin brand or role straight before a full stop or a
+ * colon: the punctuation would be laid out on the wrong side of it. Chinese
+ * templates carry no spaces; a counted span or a Latin brand brings its own.
+ */
+
+import type { Locale } from "./locale.js";
+
+type Received = {
+  subject: string;
+  eyebrow: string;
+  headline: string;
+  body1: string;
+  body2: string;
+  factRole: string;
+  factReceived: string;
+  factPapers: string;
+  papersCv: string;
+  papersCvPortfolio: string;
+  closing: string;
+};
+type Invited = {
+  subject: string;
+  subjectWhen: string;
+  eyebrow: string;
+  headline: string;
+  body1: string;
+  body2: string;
+  factWhen: string;
+  factWhere: string;
+  factWith: string;
+  factBring: string;
+  closing: string;
+};
+type Trial = { subject: string; eyebrow: string; headline: string; body1: string; sendBack: string; sendBackBy: string; factDeadline: string; closing: string };
+type Offer = {
+  subject: string;
+  eyebrow: string;
+  headline: string;
+  body1: string;
+  body2: string;
+  factRole: string;
+  factStart: string;
+  factSalary: string;
+  factProbation: string;
+  closingUntil: string;
+  closingDefault: string;
+};
+type Hired = {
+  subject: string;
+  eyebrow: string;
+  headline: string;
+  body1: string;
+  /** With the employer's ID document to bring. */
+  bringId: string;
+  /** Without one, when the office listed things to bring. */
+  bring: string;
+  factDay: string;
+  factWhere: string;
+  factBring: string;
+  factAskFor: string;
+  closing: string;
+};
+type Rejected = { subject: string; eyebrow: string; headline: string; body1: string; body2: string; closing: string };
+
+export type LetterWords = {
+  received: Received;
+  invited: Invited;
+  trial: Trial;
+  offer: Offer;
+  hired: Hired;
+  rejected: Rejected;
+  /** The acknowledgement's button to the other roles. */
+  openRoles: string;
+};
+
+export const LETTER_WORDS: Record<Locale, LetterWords> = {
+  en: {
+    received: {
+      subject: "Your application for {role} has arrived",
+      eyebrow: "Application received",
+      headline: "It's with us, {you}.",
+      body1: "Thank you for applying for {role} at {brand}. Your application is in, and nothing more is needed from you for now.",
+      body2: "We read every application ourselves, so give us up to {reply}. If it fits, we will write to you here or call you.",
+      factRole: "Role",
+      factReceived: "Received",
+      factPapers: "Papers",
+      papersCv: "CV",
+      papersCvPortfolio: "CV and portfolio",
+      closing: "If anything in it changes, reply to this email.",
+    },
+    invited: {
+      subject: "Interview for {role}",
+      subjectWhen: "Interview for {role}: {when}",
+      eyebrow: "Interview",
+      headline: "Let's meet, {you}.",
+      body1: "We would like to interview you for {role}. The details are below.",
+      body2: "Please reply to confirm, or tell us if the time does not work and we will find another.",
+      factWhen: "When",
+      factWhere: "Where",
+      factWith: "With",
+      factBring: "Bring",
+      closing: "Reply to this email if anything needs moving.",
+    },
+    trial: {
+      subject: "Trial task for {role}",
+      eyebrow: "Trial task",
+      headline: "A small piece of real work.",
+      body1: "Before we decide, we would like to see how you work. Here is the task:",
+      sendBack: "Send it back by replying to this email.",
+      sendBackBy: "Send it back by replying to this email, by {deadline}.",
+      factDeadline: "Deadline",
+      closing: "If anything in the task is unclear, ask before you start.",
+    },
+    offer: {
+      subject: "An offer from {brand}: {role}",
+      eyebrow: "Offer",
+      headline: "We would like you on the team, {you}.",
+      body1: "Here is our offer for {role}.",
+      body2: "Reply to this email to accept and we will prepare the contract. If you would rather talk it through first, say so and we will call.",
+      factRole: "Role",
+      factStart: "Start",
+      factSalary: "Salary",
+      factProbation: "Probation",
+      closingUntil: "This offer stands until {validUntil}.",
+      closingDefault: "This offer stands for {offer}.",
+    },
+    hired: {
+      subject: "Welcome to {brand}, {first}",
+      eyebrow: "First day",
+      headline: "See you soon, {you}.",
+      body1: "Everything is agreed. Here is your first day.",
+      bringId: "Bring {id} and anything listed below; the rest is on us.",
+      bring: "Bring whatever is listed below; the rest is on us.",
+      factDay: "Day",
+      factWhere: "Where",
+      factBring: "Bring",
+      factAskFor: "Ask for",
+      closing: "Any question before then, reply here.",
+    },
+    rejected: {
+      subject: "Your application for {role}",
+      eyebrow: "Your application",
+      headline: "Thank you, {you}.",
+      body1: "We have read your application for {role}, and we will not be taking it further this time.",
+      body2: "That says more about the shape of this role than about you. We keep applications for {keep} and will be in touch if a better fit opens.",
+      closing: "We wish you well with the search.",
+    },
+    openRoles: "See the open roles",
+  },
+  ar: {
+    received: {
+      subject: "وصلنا طلبك لوظيفة {role}",
+      eyebrow: "تم استلام الطلب",
+      headline: "طلبك عندنا يا {you}.",
+      body1: "شكرًا لتقديمك على وظيفة {role} في {brand} وقد وصل طلبك كاملًا، ولا نحتاج منك شيئًا الآن.",
+      body2: "نقرأ كل الطلبات بأنفسنا، فأمهلنا لمدة تصل إلى {reply}. إن كان الطلب مناسبًا فسنراسلك هنا أو نتصل بك.",
+      factRole: "الوظيفة",
+      factReceived: "تاريخ الاستلام",
+      factPapers: "الأوراق",
+      papersCv: "السيرة الذاتية",
+      papersCvPortfolio: "السيرة الذاتية ومعرض الأعمال",
+      closing: "إن تغيّر شيء في طلبك، ردّ على هذا البريد.",
+    },
+    invited: {
+      subject: "مقابلة لوظيفة {role}",
+      subjectWhen: "مقابلة لوظيفة {role} في {when}",
+      eyebrow: "مقابلة",
+      headline: "نودّ أن نلتقي يا {you}.",
+      body1: "نودّ مقابلتك لوظيفة {role}، والتفاصيل أدناه.",
+      body2: "أرجو الرد للتأكيد، أو أخبرنا إن كان الموعد لا يناسبك لنجد موعدًا آخر.",
+      factWhen: "الموعد",
+      factWhere: "المكان",
+      factWith: "مع",
+      factBring: "أحضر معك",
+      closing: "ردّ على هذا البريد إن احتجت لتغيير أي شيء.",
+    },
+    trial: {
+      subject: "مهمة تجريبية لوظيفة {role}",
+      eyebrow: "مهمة تجريبية",
+      headline: "عمل حقيقي صغير.",
+      body1: "قبل أن نقرر، نودّ أن نرى كيف تعمل. هذه هي المهمة:",
+      sendBack: "أرسلها بالرد على هذا البريد.",
+      sendBackBy: "أرسلها بالرد على هذا البريد، قبل {deadline}.",
+      factDeadline: "الموعد النهائي",
+      closing: "إن كان شيء في المهمة غير واضح، اسأل قبل أن تبدأ.",
+    },
+    offer: {
+      subject: "عرض عمل من {brand} لوظيفة {role}",
+      eyebrow: "عرض عمل",
+      headline: "نودّ أن تكون معنا يا {you}.",
+      body1: "هذا عرضنا لوظيفة {role}، وتفاصيله أدناه.",
+      body2: "ردّ على هذا البريد للقبول وسنجهّز العقد. وإن أردت أن نتحدث أولًا فأخبرنا وسنتصل بك.",
+      factRole: "الوظيفة",
+      factStart: "تاريخ البدء",
+      factSalary: "الراتب",
+      factProbation: "فترة التجربة",
+      closingUntil: "يبقى هذا العرض ساريًا حتى {validUntil}.",
+      closingDefault: "يبقى هذا العرض ساريًا لمدة {offer}.",
+    },
+    hired: {
+      subject: "أهلًا بك في {brand} يا {first}",
+      eyebrow: "اليوم الأول",
+      headline: "نراك قريبًا يا {you}.",
+      body1: "اتفقنا على كل شيء. هذه تفاصيل يومك الأول.",
+      bringId: "أحضر {id} وما هو مذكور أدناه، والباقي علينا.",
+      bring: "أحضر ما هو مذكور أدناه، والباقي علينا.",
+      factDay: "اليوم",
+      factWhere: "المكان",
+      factBring: "أحضر معك",
+      factAskFor: "اسأل عن",
+      closing: "لأي سؤال قبل ذلك، ردّ هنا.",
+    },
+    rejected: {
+      subject: "بخصوص طلبك لوظيفة {role}",
+      eyebrow: "طلبك",
+      headline: "شكرًا لك يا {you}.",
+      body1: "قرأنا طلبك لوظيفة {role}، ولن نكمل معك هذه المرة.",
+      body2: "هذا يتعلق بشكل هذه الوظيفة أكثر مما يتعلق بك. نحتفظ بالطلبات لمدة {keep} ونتواصل معك إن فُتحت وظيفة أنسب.",
+      closing: "نتمنى لك التوفيق في بحثك.",
+    },
+    openRoles: "الوظائف المفتوحة",
+  },
+  fr: {
+    received: {
+      subject: "Votre candidature est bien arrivée : {role}",
+      eyebrow: "Candidature reçue",
+      headline: "C'est entre nos mains, {you}.",
+      body1:
+        "Merci d'avoir postulé au poste « {role} » chez {brand}. Votre candidature est bien enregistrée, et vous n'avez rien d'autre à faire pour le moment.",
+      body2: "Nous lisons chaque candidature nous-mêmes, alors laissez-nous jusqu'à {reply}. Si votre profil correspond, nous vous écrirons ici ou nous vous appellerons.",
+      factRole: "Poste",
+      factReceived: "Reçue le",
+      factPapers: "Documents",
+      papersCv: "CV",
+      papersCvPortfolio: "CV et portfolio",
+      closing: "Si quelque chose change dans votre candidature, répondez simplement à cet e-mail.",
+    },
+    invited: {
+      subject: "Entretien : {role}",
+      subjectWhen: "Entretien : {role}, {when}",
+      eyebrow: "Entretien",
+      headline: "Rencontrons-nous, {you}.",
+      body1: "Nous aimerions vous recevoir en entretien pour le poste « {role} ». Vous trouverez les détails ci-dessous.",
+      body2: "Merci de répondre pour confirmer, ou dites-nous si l'horaire ne vous convient pas et nous en trouverons un autre.",
+      factWhen: "Quand",
+      factWhere: "Lieu",
+      factWith: "Avec",
+      factBring: "À apporter",
+      closing: "Répondez à cet e-mail s'il faut changer quoi que ce soit.",
+    },
+    trial: {
+      subject: "Cas pratique : {role}",
+      eyebrow: "Cas pratique",
+      headline: "Un vrai travail, en petit format.",
+      body1: "Avant de prendre notre décision, nous aimerions voir comment vous travaillez. Voici le cas pratique :",
+      sendBack: "Renvoyez-le en répondant à cet e-mail.",
+      sendBackBy: "Renvoyez-le en répondant à cet e-mail, au plus tard le {deadline}.",
+      factDeadline: "Date limite",
+      closing: "Si quelque chose n'est pas clair dans le cas pratique, posez la question avant de commencer.",
+    },
+    offer: {
+      subject: "Proposition d'embauche chez {brand} : {role}",
+      eyebrow: "Proposition d'embauche",
+      headline: "Nous aimerions vous compter parmi nous, {you}.",
+      body1: "Voici notre proposition pour le poste « {role} ».",
+      body2: "Répondez à cet e-mail pour l'accepter et nous préparerons le contrat. Si vous préférez en parler d'abord, dites-le-nous et nous vous appellerons.",
+      factRole: "Poste",
+      factStart: "Prise de poste",
+      factSalary: "Salaire",
+      factProbation: "Période d'essai",
+      closingUntil: "Cette proposition est valable jusqu'au {validUntil}.",
+      closingDefault: "Cette proposition est valable {offer}.",
+    },
+    hired: {
+      subject: "Bienvenue chez {brand}, {first}",
+      eyebrow: "Premier jour",
+      headline: "À très bientôt, {you}.",
+      body1: "Tout est réglé. Voici les détails de votre premier jour.",
+      bringId: "Apportez {id} et tout ce qui figure ci-dessous. Nous nous occupons du reste.",
+      bring: "Apportez tout ce qui figure ci-dessous. Nous nous occupons du reste.",
+      factDay: "Jour",
+      factWhere: "Lieu",
+      factBring: "À apporter",
+      factAskFor: "Demandez",
+      closing: "Une question d'ici là ? Répondez simplement à cet e-mail.",
+    },
+    rejected: {
+      subject: "Votre candidature : {role}",
+      eyebrow: "Votre candidature",
+      headline: "Merci, {you}.",
+      body1: "Nous avons lu votre candidature au poste « {role} », et nous ne pourrons pas y donner suite cette fois-ci.",
+      body2:
+        "Ce choix tient aux besoins précis de ce poste plus qu'à vous. Nous conservons les candidatures {keep} et reviendrons vers vous si un poste plus proche de votre profil se présente.",
+      closing: "Nous vous souhaitons bonne chance dans vos recherches.",
+    },
+    openRoles: "Voir les postes à pourvoir",
+  },
+  it: {
+    received: {
+      subject: "La tua candidatura per {role} è arrivata",
+      eyebrow: "Candidatura ricevuta",
+      headline: "È nelle nostre mani, {you}.",
+      body1: "Grazie per la tua candidatura alla posizione di {role} in {brand}. L'abbiamo registrata e per ora non devi fare nient'altro.",
+      body2: "Leggiamo personalmente ogni candidatura, quindi concedici fino a {reply}. Se il tuo profilo è in linea, ti scriveremo qui o ti chiameremo.",
+      factRole: "Posizione",
+      factReceived: "Ricevuta il",
+      factPapers: "Documenti",
+      papersCv: "CV",
+      papersCvPortfolio: "CV e portfolio",
+      closing: "Se cambia qualcosa nella tua candidatura, rispondi a questa email.",
+    },
+    invited: {
+      subject: "Colloquio per {role}",
+      subjectWhen: "Colloquio per {role}: {when}",
+      eyebrow: "Colloquio",
+      headline: "Incontriamoci, {you}.",
+      body1: "Vorremmo fissare un colloquio con te per la posizione di {role}. Trovi i dettagli qui sotto.",
+      body2: "Rispondi per confermare, oppure dicci se l'orario non ti va bene e ne troveremo un altro.",
+      factWhen: "Quando",
+      factWhere: "Dove",
+      factWith: "Con",
+      factBring: "Da portare",
+      closing: "Se c'è qualcosa da spostare, rispondi a questa email.",
+    },
+    trial: {
+      subject: "Prova pratica per {role}",
+      eyebrow: "Prova pratica",
+      headline: "Un piccolo assaggio di lavoro vero.",
+      body1: "Prima di decidere, vorremmo vedere come lavori. Ecco la prova:",
+      sendBack: "Inviacela rispondendo a questa email.",
+      sendBackBy: "Inviacela rispondendo a questa email entro il {deadline}.",
+      factDeadline: "Scadenza",
+      closing: "Se qualcosa nella prova non ti è chiaro, chiedi prima di iniziare.",
+    },
+    offer: {
+      subject: "Un'offerta di lavoro da {brand}: {role}",
+      eyebrow: "Offerta di lavoro",
+      headline: "Ti vorremmo nel nostro team, {you}.",
+      body1: "Ecco la nostra offerta per la posizione di {role}.",
+      body2: "Rispondi a questa email per accettare e prepareremo il contratto. Se preferisci parlarne prima, dillo pure e ti chiameremo.",
+      factRole: "Posizione",
+      factStart: "Inizio",
+      factSalary: "Retribuzione",
+      factProbation: "Periodo di prova",
+      closingUntil: "L'offerta è valida fino al {validUntil}.",
+      closingDefault: "L'offerta è valida per {offer}.",
+    },
+    hired: {
+      subject: "Ti diamo il benvenuto in {brand}, {first}",
+      eyebrow: "Primo giorno",
+      headline: "A presto, {you}.",
+      body1: "Abbiamo definito tutto. Ecco i dettagli del tuo primo giorno.",
+      bringId: "Porta {id} e quello che trovi qui sotto: al resto pensiamo noi.",
+      bring: "Porta quello che trovi qui sotto: al resto pensiamo noi.",
+      factDay: "Giorno",
+      factWhere: "Dove",
+      factBring: "Da portare",
+      factAskFor: "Chiedi di",
+      closing: "Per qualsiasi domanda prima di allora, rispondi qui.",
+    },
+    rejected: {
+      subject: "La tua candidatura per {role}",
+      eyebrow: "La tua candidatura",
+      headline: "Grazie, {you}.",
+      body1: "Abbiamo letto la tua candidatura per la posizione di {role} e, per questa volta, non potremo darle seguito.",
+      body2:
+        "La scelta dipende più dalle esigenze di questo ruolo che da te. Conserviamo le candidature per {keep} e ti ricontatteremo se si aprirà una posizione più adatta.",
+      closing: "Ti auguriamo il meglio per la tua ricerca.",
+    },
+    openRoles: "Vedi le posizioni aperte",
+  },
+  ru: {
+    received: {
+      subject: "Ваш отклик на вакансию «{role}» получен",
+      eyebrow: "Отклик получен",
+      headline: "Ваш отклик у нас, {you}.",
+      body1: "Спасибо за отклик на вакансию «{role}» в {brand}. Всё дошло, и пока от вас больше ничего не требуется.",
+      body2: "Мы сами читаем каждый отклик, поэтому дайте нам до {reply}. Если ваша кандидатура подойдёт, мы напишем вам на эту почту или позвоним.",
+      factRole: "Вакансия",
+      factReceived: "Дата получения",
+      factPapers: "Документы",
+      papersCv: "Резюме",
+      papersCvPortfolio: "Резюме и портфолио",
+      closing: "Если что-то изменится, просто ответьте на это письмо.",
+    },
+    invited: {
+      subject: "Собеседование по вакансии «{role}»",
+      subjectWhen: "Собеседование по вакансии «{role}»: {when}",
+      eyebrow: "Собеседование",
+      headline: "Давайте познакомимся, {you}.",
+      body1: "Приглашаем вас на собеседование по вакансии «{role}». Подробности ниже.",
+      body2: "Пожалуйста, ответьте, чтобы подтвердить встречу, или напишите, если время не подходит, и мы подберём другое.",
+      factWhen: "Когда",
+      factWhere: "Где",
+      factWith: "С кем",
+      factBring: "Взять с собой",
+      closing: "Если что-то нужно перенести, ответьте на это письмо.",
+    },
+    trial: {
+      subject: "Тестовое задание по вакансии «{role}»",
+      eyebrow: "Тестовое задание",
+      headline: "Немного настоящей работы.",
+      body1: "Прежде чем принять решение, мы хотим посмотреть, как вы работаете. Вот задание:",
+      sendBack: "Пришлите его в ответ на это письмо.",
+      sendBackBy: "Пришлите его в ответ на это письмо до {deadline}.",
+      factDeadline: "Срок",
+      closing: "Если в задании что-то непонятно, спросите до того, как начнёте.",
+    },
+    offer: {
+      subject: "Предложение о работе от {brand}: {role}",
+      eyebrow: "Предложение о работе",
+      headline: "Будем рады видеть вас в команде, {you}.",
+      body1: "Вот наше предложение по вакансии «{role}».",
+      body2: "Чтобы принять его, ответьте на это письмо, и мы подготовим договор. Если сначала хотите всё обсудить, напишите, и мы позвоним.",
+      factRole: "Должность",
+      factStart: "Выход на работу",
+      factSalary: "Зарплата",
+      factProbation: "Испытательный срок",
+      closingUntil: "Предложение действует до {validUntil}.",
+      closingDefault: "Предложение действует {offer}.",
+    },
+    hired: {
+      subject: "Добро пожаловать в {brand}, {first}",
+      eyebrow: "Первый день",
+      headline: "До скорой встречи, {you}.",
+      body1: "Всё согласовано. Вот детали вашего первого дня.",
+      bringId: "Возьмите с собой {id} и всё, что указано ниже. Остальное мы берём на себя.",
+      bring: "Возьмите с собой всё, что указано ниже. Остальное мы берём на себя.",
+      factDay: "Дата",
+      factWhere: "Где",
+      factBring: "Взять с собой",
+      factAskFor: "Кого спросить",
+      closing: "Если до этого появятся вопросы, просто ответьте на это письмо.",
+    },
+    rejected: {
+      subject: "Ваш отклик на вакансию «{role}»",
+      eyebrow: "Ваш отклик",
+      headline: "Спасибо, {you}.",
+      body1: "Мы прочитали ваш отклик на вакансию «{role}» и в этот раз не будем рассматривать его дальше.",
+      body2: "Дело скорее в особенностях этой вакансии, чем в вас. Мы храним отклики {keep} и свяжемся с вами, если появится более подходящая позиция.",
+      closing: "Желаем удачи в поиске работы.",
+    },
+    openRoles: "Открытые вакансии",
+  },
+  zh: {
+    received: {
+      subject: "您的{role}职位申请已收到",
+      eyebrow: "申请已收到",
+      headline: "{you}，申请已顺利送达。",
+      body1: "感谢您申请{brand}的{role}职位。申请已完整提交，目前无需您再做什么。",
+      body2: "每一份申请我们都会亲自阅读，所以请给我们最多{reply}时间。如果合适，我们会通过邮件回复您，或致电与您联系。",
+      factRole: "职位",
+      factReceived: "收到日期",
+      factPapers: "材料",
+      papersCv: "简历",
+      papersCvPortfolio: "简历和作品集",
+      closing: "如有任何变动，请直接回复此邮件。",
+    },
+    invited: {
+      subject: "{role}职位面试邀请",
+      subjectWhen: "{role}职位面试邀请：{when}",
+      eyebrow: "面试邀请",
+      headline: "{you}，期待与您见面。",
+      body1: "我们想邀请您参加{role}职位的面试，详情如下。",
+      body2: "请回复此邮件确认；如果时间不方便，也请告诉我们，我们会另约时间。",
+      factWhen: "时间",
+      factWhere: "地点",
+      factWith: "面试官",
+      factBring: "需携带",
+      closing: "如需调整，请回复此邮件。",
+    },
+    trial: {
+      subject: "{role}职位测试任务",
+      eyebrow: "测试任务",
+      headline: "一项小小的实战任务。",
+      body1: "在做决定之前，我们想看看您的工作方式。任务如下：",
+      sendBack: "完成后请直接回复此邮件发给我们。",
+      sendBackBy: "请于{deadline}前完成，并直接回复此邮件发给我们。",
+      factDeadline: "截止时间",
+      closing: "如果任务中有不清楚的地方，请在开始前提问。",
+    },
+    offer: {
+      subject: "{brand}录用通知：{role}",
+      eyebrow: "录用通知",
+      headline: "{you}，诚邀您加入我们的团队。",
+      body1: "以下是我们为{role}职位提供的录用条件。",
+      body2: "如接受此录用，请回复此邮件，我们会着手准备合同。如果您想先电话沟通，请告诉我们，我们会致电给您。",
+      factRole: "职位",
+      factStart: "入职日期",
+      factSalary: "薪资",
+      factProbation: "试用期",
+      closingUntil: "本录用通知有效期至{validUntil}。",
+      closingDefault: "本录用通知有效期为{offer}。",
+    },
+    hired: {
+      subject: "{first}，欢迎加入{brand}",
+      eyebrow: "入职首日",
+      headline: "{you}，期待您的加入。",
+      body1: "一切都已谈妥。以下是您入职第一天的信息。",
+      bringId: "请携带{id}以及下方列出的物品，其余的交给我们。",
+      bring: "请携带下方列出的物品，其余的交给我们。",
+      factDay: "日期",
+      factWhere: "地点",
+      factBring: "需携带",
+      factAskFor: "联系人",
+      closing: "在此之前如有任何问题，请直接回复此邮件。",
+    },
+    rejected: {
+      subject: "关于您申请的{role}职位",
+      eyebrow: "您的申请",
+      headline: "{you}，谢谢您。",
+      body1: "我们已阅读您对{role}职位的申请，很遗憾这次无法继续推进。",
+      body2: "这主要与该职位的具体要求有关，而非您个人。我们会将申请保留{keep}，如有更合适的职位，会再与您联系。",
+      closing: "祝您求职顺利。",
+    },
+    openRoles: "查看在招职位",
+  },
+};
