@@ -34,6 +34,8 @@ type Invited = {
     factWhere: string;
     factWith: string;
     factBring: string;
+    /** How long the interview runs: "45 minutes", written by Intl. */
+    factLength: string;
     closing: string;
 };
 type Trial = {
@@ -79,6 +81,17 @@ type Rejected = {
     eyebrow: string;
     headline: string;
     body1: string;
+    /** body1 for someone who came in to meet the office. */
+    body1Met: string;
+    body2: string;
+    closing: string;
+};
+/** A notice about an interview already booked: it moved, it is off, or it is tomorrow. */
+type Notice = {
+    subject: string;
+    eyebrow: string;
+    headline: string;
+    body1: string;
     body2: string;
     closing: string;
 };
@@ -89,8 +102,20 @@ export type LetterWords = {
     offer: Offer;
     hired: Hired;
     rejected: Rejected;
+    /** The interview's new time: {when} is the new moment. */
+    moved: Notice;
+    /** The interview called off: {when} is the moment it was. */
+    cancelled: Notice;
+    /** The day before. */
+    reminder: Notice;
     /** The acknowledgement's button to the other roles. */
     openRoles: string;
 };
+/** An employer's own wording over the house's, letter by letter, line by line. */
+export type LetterWordsPatch = {
+    [K in keyof LetterWords]?: LetterWords[K] extends string ? string : Partial<LetterWords[K]>;
+};
+/** The words with an employer's patch laid over them. */
+export declare function patchWords(words: LetterWords, patch: LetterWordsPatch | undefined): LetterWords;
 export declare const LETTER_WORDS: Record<Locale, LetterWords>;
 export {};

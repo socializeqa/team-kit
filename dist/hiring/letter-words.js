@@ -9,6 +9,19 @@
  * colon: the punctuation would be laid out on the wrong side of it. Chinese
  * templates carry no spaces; a counted span or a Latin brand brings its own.
  */
+/** The words with an employer's patch laid over them. */
+export function patchWords(words, patch) {
+    if (!patch)
+        return words;
+    const out = { ...words };
+    for (const [key, value] of Object.entries(patch)) {
+        if (value === undefined)
+            continue;
+        const base = words[key];
+        out[key] = typeof value === "string" ? value : { ...base, ...value };
+    }
+    return out;
+}
 export const LETTER_WORDS = {
     en: {
         received: {
@@ -35,6 +48,7 @@ export const LETTER_WORDS = {
             factWhere: "Where",
             factWith: "With",
             factBring: "Bring",
+            factLength: "Length",
             closing: "Reply to this email if anything needs moving.",
         },
         trial: {
@@ -78,8 +92,33 @@ export const LETTER_WORDS = {
             eyebrow: "Your application",
             headline: "Thank you, {you}.",
             body1: "We have read your application for {role}, and we will not be taking it further this time.",
+            body1Met: "Thank you for coming in to meet us about {role}. We will not be taking it further this time.",
             body2: "That says more about the shape of this role than about you. We keep applications for {keep} and will be in touch if a better fit opens.",
             closing: "We wish you well with the search.",
+        },
+        moved: {
+            subject: "Your interview for {role} has moved: {when}",
+            eyebrow: "Interview moved",
+            headline: "A new time, {you}.",
+            body1: "We have moved your interview for {role}. The new details are below.",
+            body2: "Your calendar invite is updated too. If the new time does not work, reply and we will find another.",
+            closing: "Reply to this email if anything needs moving.",
+        },
+        cancelled: {
+            subject: "Your interview for {role} is cancelled",
+            eyebrow: "Interview cancelled",
+            headline: "A change of plan, {you}.",
+            body1: "We have had to cancel your interview for {role} on {when}.",
+            body2: "We are sorry for the trouble. If we can find another time, we will write to you.",
+            closing: "Reply to this email if you have a question.",
+        },
+        reminder: {
+            subject: "Tomorrow: your interview for {role}",
+            eyebrow: "Interview tomorrow",
+            headline: "See you tomorrow, {you}.",
+            body1: "A reminder of your interview for {role}. The details are below.",
+            body2: "If something has come up, reply to this email and we will find another time.",
+            closing: "Reply to this email if anything needs moving.",
         },
         openRoles: "See the open roles",
     },
@@ -108,6 +147,7 @@ export const LETTER_WORDS = {
             factWhere: "المكان",
             factWith: "مع",
             factBring: "أحضر معك",
+            factLength: "المدة",
             closing: "ردّ على هذا البريد إن احتجت لتغيير أي شيء.",
         },
         trial: {
@@ -151,8 +191,33 @@ export const LETTER_WORDS = {
             eyebrow: "طلبك",
             headline: "شكرًا لك يا {you}.",
             body1: "قرأنا طلبك لوظيفة {role}، ولن نكمل معك هذه المرة.",
+            body1Met: "نشكرك على حضورك للقائنا بخصوص وظيفة {role} لدينا، لكننا لن نكمل معك هذه المرة.",
             body2: "هذا يتعلق بشكل هذه الوظيفة أكثر مما يتعلق بك. نحتفظ بالطلبات لمدة {keep} ونتواصل معك إن فُتحت وظيفة أنسب.",
             closing: "نتمنى لك التوفيق في بحثك.",
+        },
+        moved: {
+            subject: "تغيّر موعد مقابلتك لوظيفة {role} إلى {when}",
+            eyebrow: "تغيّر موعد المقابلة",
+            headline: "نلتقي في موعد جديد يا {you}.",
+            body1: "غيّرنا موعد مقابلتك لوظيفة {role} لدينا، والتفاصيل الجديدة أدناه.",
+            body2: "عدّلنا دعوة التقويم أيضًا. وإن كان الموعد الجديد لا يناسبك، فردّ علينا لنجد موعدًا آخر.",
+            closing: "ردّ على هذا البريد إن احتجت لتغيير أي شيء.",
+        },
+        cancelled: {
+            subject: "تم إلغاء مقابلتك لوظيفة {role}",
+            eyebrow: "تم إلغاء المقابلة",
+            headline: "تغيّرت الخطة يا {you}.",
+            body1: "اضطررنا إلى إلغاء مقابلتك لوظيفة {role} المقررة يوم {when}.",
+            body2: "نعتذر عن الإزعاج. وإن وجدنا موعدًا آخر فسنراسلك.",
+            closing: "ردّ على هذا البريد إن كان لديك أي سؤال.",
+        },
+        reminder: {
+            subject: "مقابلتك لوظيفة {role} غدًا",
+            eyebrow: "المقابلة غدًا",
+            headline: "نراك غدًا يا {you}.",
+            body1: "نذكّرك بموعد مقابلتك لوظيفة {role} لدينا، والتفاصيل أدناه.",
+            body2: "إن طرأ ما يمنعك من الحضور، فردّ على هذا البريد لنجد موعدًا آخر.",
+            closing: "ردّ على هذا البريد إن احتجت لتغيير أي شيء.",
         },
         openRoles: "الوظائف المفتوحة",
     },
@@ -181,6 +246,7 @@ export const LETTER_WORDS = {
             factWhere: "Lieu",
             factWith: "Avec",
             factBring: "À apporter",
+            factLength: "Durée",
             closing: "Répondez à cet e-mail s'il faut changer quoi que ce soit.",
         },
         trial: {
@@ -224,8 +290,33 @@ export const LETTER_WORDS = {
             eyebrow: "Votre candidature",
             headline: "Merci, {you}.",
             body1: "Nous avons lu votre candidature au poste « {role} », et nous ne pourrons pas y donner suite cette fois-ci.",
+            body1Met: "Merci d'avoir pris le temps de nous rencontrer pour le poste « {role} ». Nous ne pourrons pas donner suite à votre candidature cette fois-ci.",
             body2: "Ce choix tient aux besoins précis de ce poste plus qu'à vous. Nous conservons les candidatures {keep} et reviendrons vers vous si un poste plus proche de votre profil se présente.",
             closing: "Nous vous souhaitons bonne chance dans vos recherches.",
+        },
+        moved: {
+            subject: "Entretien déplacé au {when} : {role}",
+            eyebrow: "Entretien déplacé",
+            headline: "Un nouvel horaire, {you}.",
+            body1: "Nous avons déplacé votre entretien pour le poste « {role} ». Vous trouverez les détails mis à jour ci-dessous.",
+            body2: "Nous avons aussi mis à jour l'invitation dans votre agenda. Si le nouvel horaire ne vous convient pas, répondez-nous et nous en trouverons un autre.",
+            closing: "Répondez à cet e-mail s'il faut changer quoi que ce soit.",
+        },
+        cancelled: {
+            subject: "Entretien annulé : {role}",
+            eyebrow: "Entretien annulé",
+            headline: "Changement de programme, {you}.",
+            body1: "Nous avons dû annuler votre entretien pour le poste « {role} », prévu le {when}.",
+            body2: "Toutes nos excuses pour ce contretemps. Si nous trouvons un autre horaire, nous vous écrirons.",
+            closing: "Répondez à cet e-mail si vous avez une question.",
+        },
+        reminder: {
+            subject: "Entretien demain : {role}",
+            eyebrow: "Entretien demain",
+            headline: "À demain, {you}.",
+            body1: "Nous vous rappelons votre entretien pour le poste « {role} ». Vous trouverez les détails ci-dessous.",
+            body2: "En cas d'empêchement, répondez à cet e-mail et nous trouverons un autre horaire.",
+            closing: "Répondez à cet e-mail s'il faut changer quoi que ce soit.",
         },
         openRoles: "Voir les postes à pourvoir",
     },
@@ -254,6 +345,7 @@ export const LETTER_WORDS = {
             factWhere: "Dove",
             factWith: "Con",
             factBring: "Da portare",
+            factLength: "Durata",
             closing: "Se c'è qualcosa da spostare, rispondi a questa email.",
         },
         trial: {
@@ -297,8 +389,33 @@ export const LETTER_WORDS = {
             eyebrow: "La tua candidatura",
             headline: "Grazie, {you}.",
             body1: "Abbiamo letto la tua candidatura per la posizione di {role} e, per questa volta, non potremo darle seguito.",
+            body1Met: "Grazie di averci incontrato per parlare della posizione di {role}. Per questa volta, però, non potremo dare seguito alla tua candidatura.",
             body2: "La scelta dipende più dalle esigenze di questo ruolo che da te. Conserviamo le candidature per {keep} e ti ricontatteremo se si aprirà una posizione più adatta.",
             closing: "Ti auguriamo il meglio per la tua ricerca.",
+        },
+        moved: {
+            subject: "Il tuo colloquio per {role} è stato spostato: {when}",
+            eyebrow: "Colloquio spostato",
+            headline: "Nuovo orario, {you}.",
+            body1: "Abbiamo spostato il tuo colloquio per la posizione di {role}. Trovi i nuovi dettagli qui sotto.",
+            body2: "Abbiamo aggiornato anche l'invito nel tuo calendario. Se il nuovo orario non ti va bene, rispondi e ne troveremo un altro.",
+            closing: "Se c'è qualcosa da spostare, rispondi a questa email.",
+        },
+        cancelled: {
+            subject: "Il tuo colloquio per {role} è stato annullato",
+            eyebrow: "Colloquio annullato",
+            headline: "Cambio di programma, {you}.",
+            body1: "Abbiamo dovuto annullare il tuo colloquio per la posizione di {role}, previsto per {when}.",
+            body2: "Ci scusiamo per il disagio. Se riusciremo a trovare un altro orario, ti scriveremo.",
+            closing: "Se hai domande, rispondi a questa email.",
+        },
+        reminder: {
+            subject: "Domani: il tuo colloquio per {role}",
+            eyebrow: "Colloquio domani",
+            headline: "A domani, {you}.",
+            body1: "Ti ricordiamo il colloquio per la posizione di {role}. Trovi i dettagli qui sotto.",
+            body2: "Se hai avuto un imprevisto, rispondi a questa email e troveremo un altro orario.",
+            closing: "Se c'è qualcosa da spostare, rispondi a questa email.",
         },
         openRoles: "Vedi le posizioni aperte",
     },
@@ -327,6 +444,7 @@ export const LETTER_WORDS = {
             factWhere: "Где",
             factWith: "С кем",
             factBring: "Взять с собой",
+            factLength: "Длительность",
             closing: "Если что-то нужно перенести, ответьте на это письмо.",
         },
         trial: {
@@ -370,8 +488,33 @@ export const LETTER_WORDS = {
             eyebrow: "Ваш отклик",
             headline: "Спасибо, {you}.",
             body1: "Мы прочитали ваш отклик на вакансию «{role}» и в этот раз не будем рассматривать его дальше.",
+            body1Met: "Спасибо, что пришли на собеседование по вакансии «{role}». В этот раз мы не будем рассматривать вашу кандидатуру дальше.",
             body2: "Дело скорее в особенностях этой вакансии, чем в вас. Мы храним отклики {keep} и свяжемся с вами, если появится более подходящая позиция.",
             closing: "Желаем удачи в поиске работы.",
+        },
+        moved: {
+            subject: "Собеседование по вакансии «{role}» перенесено: {when}",
+            eyebrow: "Собеседование перенесено",
+            headline: "Новое время встречи, {you}.",
+            body1: "Мы перенесли ваше собеседование по вакансии «{role}». Новое время и подробности ниже.",
+            body2: "Приглашение в календаре тоже обновлено. Если новое время не подходит, напишите нам, и мы подберём другое.",
+            closing: "Если что-то нужно перенести, ответьте на это письмо.",
+        },
+        cancelled: {
+            subject: "Собеседование по вакансии «{role}» отменено",
+            eyebrow: "Собеседование отменено",
+            headline: "Планы изменились, {you}.",
+            body1: "Нам пришлось отменить ваше собеседование по вакансии «{role}» ({when}).",
+            body2: "Приносим извинения за неудобства. Если получится найти другое время, мы вам напишем.",
+            closing: "Если у вас есть вопросы, ответьте на это письмо.",
+        },
+        reminder: {
+            subject: "Завтра: ваше собеседование по вакансии «{role}»",
+            eyebrow: "Собеседование завтра",
+            headline: "До завтра, {you}.",
+            body1: "Напоминаем о вашем собеседовании по вакансии «{role}». Подробности ниже.",
+            body2: "Если у вас изменились планы, ответьте на это письмо, и мы подберём другое время.",
+            closing: "Если что-то нужно перенести, ответьте на это письмо.",
         },
         openRoles: "Открытые вакансии",
     },
@@ -400,6 +543,7 @@ export const LETTER_WORDS = {
             factWhere: "地点",
             factWith: "面试官",
             factBring: "需携带",
+            factLength: "时长",
             closing: "如需调整，请回复此邮件。",
         },
         trial: {
@@ -443,8 +587,33 @@ export const LETTER_WORDS = {
             eyebrow: "您的申请",
             headline: "{you}，谢谢您。",
             body1: "我们已阅读您对{role}职位的申请，很遗憾这次无法继续推进。",
+            body1Met: "感谢您前来参加{role}职位的面试，很遗憾这次无法继续推进。",
             body2: "这主要与该职位的具体要求有关，而非您个人。我们会将申请保留{keep}，如有更合适的职位，会再与您联系。",
             closing: "祝您求职顺利。",
+        },
+        moved: {
+            subject: "您的{role}职位面试时间已调整：{when}",
+            eyebrow: "面试时间调整",
+            headline: "{you}，面试时间有了新安排。",
+            body1: "我们调整了您的{role}职位面试时间，最新详情如下。",
+            body2: "日历邀请也已同步更新。如果新时间不方便，请回复此邮件，我们会另约时间。",
+            closing: "如需调整，请回复此邮件。",
+        },
+        cancelled: {
+            subject: "您的{role}职位面试已取消",
+            eyebrow: "面试已取消",
+            headline: "{you}，计划有变。",
+            body1: "我们不得不取消您原定于{when}的{role}职位面试。",
+            body2: "给您带来不便，非常抱歉。如果能另约时间，我们会再发邮件联系您。",
+            closing: "如有任何疑问，请回复此邮件。",
+        },
+        reminder: {
+            subject: "明天：您的{role}职位面试",
+            eyebrow: "明天面试",
+            headline: "{you}，明天见。",
+            body1: "提醒您参加{role}职位的面试，详情如下。",
+            body2: "如果临时有事，请回复此邮件，我们会另约时间。",
+            closing: "如需调整，请回复此邮件。",
         },
         openRoles: "查看在招职位",
     },

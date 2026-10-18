@@ -506,6 +506,31 @@ Nothing here reads a database or the environment: the app loads the rows,
 saves the results and runs the erase on its own service key (`erasedRow()`
 gives the values that blank a candidate).
 
+### Interviews, kept in step (v2.15.0)
+
+An interview is a real invitation now, and the candidate is told when it
+changes. `interviewIcs` takes an `organizer` (RFC 5546 asks for one on every
+method) and the candidate as `attendee`: the file is then `METHOD:REQUEST`,
+an invitation their calendar answers; the same `uid` with a higher
+`sequence` moves it where they keep it, and `cancelled` sends
+`METHOD:CANCEL`. `interviewAttachment` gives the email attachment, its
+content type naming the method. `buildInterviewNotice("moved" | "cancelled"
+| "reminder", …)` writes the three notices in all six languages, with the
+same facts as the invitation. The invitation says how long it runs
+(`details.minutes`, written by Intl: `sayLength`), a trial can carry a line
+about pay (`details.paid`), and a regret thanks someone who came in
+(`details.interviewed: "yes"`). An employer lays its own lines over the
+house's with `brand.words` (Socialize's acknowledgement says it answers on
+WhatsApp).
+
+```ts
+import { buildInterviewNotice, interviewAttachment } from "@socialize/team-kit/hiring";
+
+const moved = buildInterviewNotice("moved", { name: "Sam Example", role: "Office Manager", startsAt, minutes: 45, where: "The office" }, "en", brand);
+const file = interviewAttachment({ uid: `interview-${meetingId}@example.com`, title: "Interview, Example Co: Office Manager", startsAt, minutes: 45, prodId: "-//Example Co//Hiring//EN", organizer: { email: "hello@example.com", name: "Example Co" }, attendee: { email: "sam@example.com", name: "Sam" }, sequence: 1 });
+// { filename: "invite.ics", content: <base64>, contentType: "text/calendar; charset=UTF-8; method=REQUEST" }
+```
+
 ## Countries and where a visitor came from (v2.14.0)
 
 ```ts

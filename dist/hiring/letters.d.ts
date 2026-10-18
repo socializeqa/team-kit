@@ -7,6 +7,7 @@
  * into its own email shell and escapes it there. Every value here, a typed
  * brief or a candidate's name included, is raw text.
  */
+import { type LetterWordsPatch } from "./letter-words.js";
 import { type Locale, type OtherLocale } from "./locale.js";
 import type { Stage } from "./stages.js";
 /**
@@ -29,9 +30,13 @@ export type LetterDetails = {
     where?: string;
     withWhom?: string;
     bring?: string;
+    /** How long the interview runs, in minutes ("45"); the letter says it in the candidate's language. */
+    minutes?: string;
     /** Trial task: the brief and its deadline. */
     brief?: string;
     deadline?: string;
+    /** A line about pay for the trial, as the office typed it ("This task is paid: QAR 300"). */
+    paid?: string;
     /** Offer: start, salary, probation, how long it stands. */
     start?: string;
     salary?: string;
@@ -41,6 +46,8 @@ export type LetterDetails = {
     askFor?: string;
     /** Regret: a line of the office's own. */
     note?: string;
+    /** Regret: "yes" when they came in to meet the office, which the letter thanks them for. */
+    interviewed?: string;
 };
 /**
  * What a letter cannot go without. An invitation with no when or where is
@@ -72,6 +79,12 @@ export type LetterBrand = {
     offerDays?: number;
     /** The office's clock, for an interview picked as a day and a time. */
     timeZone?: string;
+    /**
+     * The employer's own wording over the house's, by language: a careers site
+     * that answers on WhatsApp says so in its acknowledgement. Line by line;
+     * whatever it leaves out stays the house's.
+     */
+    words?: Partial<Record<Locale, LetterWordsPatch>>;
 };
 export type LetterInput = {
     /** The candidate's full name; letters greet the first word of it. */
@@ -112,10 +125,36 @@ export type BuiltLetter = {
 /** The letter in a language, from its words: the same facts and conditions in each. */
 export declare function buildLetter(letter: Letter, input: LetterInput, locale: Locale, brand: LetterBrand): BuiltLetter;
 /**
+ * The notices about an interview already booked: it moved, it is off, or it
+ * is tomorrow. They belong to no stage; the office's move or its clock sends
+ * them, each with the calendar file that keeps the candidate's own calendar
+ * in step (interviewAttachment, with the same uid and one more sequence).
+ */
+export declare const INTERVIEW_NOTICES: readonly ["moved", "cancelled", "reminder"];
+export type InterviewNotice = (typeof INTERVIEW_NOTICES)[number];
+export declare function isInterviewNotice(value: unknown): value is InterviewNotice;
+export declare function noticeLabel(notice: InterviewNotice): string;
+export type NoticeInput = {
+    name: string;
+    /** The role's title in the notice's language. */
+    role: string;
+    /** The English title, for the story line; `role` when absent. */
+    roleEn?: string;
+    /** The interview's start as an ISO moment: the new one for a move, the one it was for a cancel. */
+    startsAt: string;
+    minutes?: number;
+    where?: string;
+    withWhom?: string;
+    /** A line of the office's own, after the words. */
+    note?: string;
+};
+/** A notice in the candidate's language; null when `startsAt` is not a moment. */
+export declare function buildInterviewNotice(notice: InterviewNotice, input: NoticeInput, locale: Locale, brand: LetterBrand): BuiltLetter | null;
+/**
  * The letter's idempotency key for Resend: its own words make it, so pressing
  * Send twice mails it once, and a corrected letter is a new one. `body` is
  * what goes (the rendered HTML). Web Crypto, so it runs anywhere.
  */
-export declare function letterKey(letter: Letter, id: string, subject: string, body: string): Promise<string>;
+export declare function letterKey(letter: Letter | InterviewNotice, id: string, subject: string, body: string): Promise<string>;
 /** A story line's letter, without the address: "Interview invitation, emailed to sam@example.com" → "Interview invitation". */
 export declare function letterName(detail: string | null): string;

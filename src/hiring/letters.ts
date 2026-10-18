@@ -9,8 +9,8 @@
  */
 
 import { counted } from "./counts.js";
-import { momentIn, sayMoment } from "./calendar.js";
-import { LETTER_WORDS } from "./letter-words.js";
+import { momentIn, sayLength, sayMoment } from "./calendar.js";
+import { LETTER_WORDS, patchWords, type LetterWordsPatch } from "./letter-words.js";
 import { DEFAULT_TIME_ZONE, LANGUAGE_NAMES, fill, type Locale, type OtherLocale } from "./locale.js";
 import type { Stage } from "./stages.js";
 
@@ -45,9 +45,13 @@ export type LetterDetails = {
   where?: string;
   withWhom?: string;
   bring?: string;
+  /** How long the interview runs, in minutes ("45"); the letter says it in the candidate's language. */
+  minutes?: string;
   /** Trial task: the brief and its deadline. */
   brief?: string;
   deadline?: string;
+  /** A line about pay for the trial, as the office typed it ("This task is paid: QAR 300"). */
+  paid?: string;
   /** Offer: start, salary, probation, how long it stands. */
   start?: string;
   salary?: string;
@@ -57,6 +61,8 @@ export type LetterDetails = {
   askFor?: string;
   /** Regret: a line of the office's own. */
   note?: string;
+  /** Regret: "yes" when they came in to meet the office, which the letter thanks them for. */
+  interviewed?: string;
 };
 
 /**
@@ -117,6 +123,12 @@ export type LetterBrand = {
   offerDays?: number;
   /** The office's clock, for an interview picked as a day and a time. */
   timeZone?: string;
+  /**
+   * The employer's own wording over the house's, by language: a careers site
+   * that answers on WhatsApp says so in its acknowledgement. Line by line;
+   * whatever it leaves out stays the house's.
+   */
+  words?: Partial<Record<Locale, LetterWordsPatch>>;
 };
 
 export type LetterInput = {
@@ -161,17 +173,12 @@ const fact = (label: string, value: string | undefined, strong = false): LetterF
   value?.trim() ? [{ label, value: value.trim(), ...(strong ? { strong } : {}) }] : [];
 const whole = (n: number | undefined, fallback: number) => (Number.isInteger(n) && (n as number) > 0 && (n as number) < 1000 ? (n as number) : fallback);
 
-/** The letter in a language, from its words: the same facts and conditions in each. */
-export function buildLetter(letter: Letter, input: LetterInput, locale: Locale, brand: LetterBrand): BuiltLetter {
-  const W = LETTER_WORDS[locale];
-  // An interview picked on the calendar is written in the candidate's own words.
-  const picked = letter === "invited" ? momentIn(input.details?.day, input.details?.time, brand.timeZone ?? DEFAULT_TIME_ZONE) : null;
-  const d: LetterDetails = picked ? { ...input.details, when: sayMoment(picked, locale, brand.timeZone ?? DEFAULT_TIME_ZONE) } : (input.details ?? {});
+/** A line in the candidate's language with every slot this employer and this person fill. */
+function speaker(input: { name: string; role: string }, locale: Locale, brand: LetterBrand) {
   const name = locale === "ar" ? brand.nameAr?.trim() || brand.name : brand.name;
   // Chinese runs words together; a Latin name stands apart with a space on each side.
   const brandSlot = locale === "zh" && /\p{Script=Latin}/u.test(name) && !/\p{Script=Han}/u.test(name) ? ` ${name} ` : name;
-  const id = brand.idDocument?.[locale]?.trim();
-  const say = (text: string, extra: Record<string, string | undefined> = {}) =>
+  return (text: string, extra: Record<string, string | undefined> = {}) =>
     fill(text, {
       you: first(input.name),
       first: first(input.name),
@@ -182,6 +189,16 @@ export function buildLetter(letter: Letter, input: LetterInput, locale: Locale, 
       keep: counted(whole(brand.keepMonths, 6), "keep", locale),
       ...extra,
     }).trim();
+}
+
+/** The letter in a language, from its words: the same facts and conditions in each. */
+export function buildLetter(letter: Letter, input: LetterInput, locale: Locale, brand: LetterBrand): BuiltLetter {
+  const W = patchWords(LETTER_WORDS[locale], brand.words?.[locale]);
+  // An interview picked on the calendar is written in the candidate's own words.
+  const picked = letter === "invited" ? momentIn(input.details?.day, input.details?.time, brand.timeZone ?? DEFAULT_TIME_ZONE) : null;
+  const d: LetterDetails = picked ? { ...input.details, when: sayMoment(picked, locale, brand.timeZone ?? DEFAULT_TIME_ZONE) } : (input.details ?? {});
+  const id = brand.idDocument?.[locale]?.trim();
+  const say = speaker(input, locale, brand);
   // The story is read in English: its line names the role and the moment in English.
   const role = input.roleEn?.trim() || input.role.trim();
   const whenEn = picked ? sayMoment(picked, "en", brand.timeZone ?? DEFAULT_TIME_ZONE) : d.when?.trim();
@@ -209,7 +226,13 @@ export function buildLetter(letter: Letter, input: LetterInput, locale: Locale, 
         eyebrow: x.eyebrow,
         title: say(x.headline),
         paragraphs: [say(x.body1), x.body2],
-        facts: [...fact(x.factWhen, d.when), ...fact(x.factWhere, d.where), ...fact(x.factWith, d.withWhom), ...fact(x.factBring, d.bring)],
+        facts: [
+          ...fact(x.factWhen, d.when),
+          ...fact(x.factLength, sayLength(d.minutes, locale) ?? undefined),
+          ...fact(x.factWhere, d.where),
+          ...fact(x.factWith, d.withWhom),
+          ...fact(x.factBring, d.bring),
+        ],
         closing: x.closing,
         summary: `Invited to interview for ${role}${whenEn ? ` on ${whenEn}` : ""}${tongue}`,
       };
@@ -221,7 +244,7 @@ export function buildLetter(letter: Letter, input: LetterInput, locale: Locale, 
         subject: say(x.subject),
         eyebrow: x.eyebrow,
         title: x.headline,
-        paragraphs: [x.body1, ...lines(d.brief), d.deadline?.trim() ? say(x.sendBackBy, { deadline: d.deadline.trim() }) : x.sendBack],
+        paragraphs: [x.body1, ...lines(d.brief), d.deadline?.trim() ? say(x.sendBackBy, { deadline: d.deadline.trim() }) : x.sendBack, ...lines(d.paid)],
         facts: [...fact(x.factDeadline, d.deadline)],
         closing: x.closing,
         summary: `Sent the trial task for ${role}${tongue}`,
@@ -262,7 +285,7 @@ export function buildLetter(letter: Letter, input: LetterInput, locale: Locale, 
         subject: say(x.subject),
         eyebrow: x.eyebrow,
         title: say(x.headline),
-        paragraphs: [say(x.body1), say(x.body2), ...lines(d.note)],
+        paragraphs: [say(d.interviewed === "yes" ? x.body1Met : x.body1), say(x.body2), ...lines(d.note)],
         facts: [],
         closing: x.closing,
         summary: `Sent a regret for ${role}${tongue}`,
@@ -287,11 +310,93 @@ export function buildLetter(letter: Letter, input: LetterInput, locale: Locale, 
 }
 
 /**
+ * The notices about an interview already booked: it moved, it is off, or it
+ * is tomorrow. They belong to no stage; the office's move or its clock sends
+ * them, each with the calendar file that keeps the candidate's own calendar
+ * in step (interviewAttachment, with the same uid and one more sequence).
+ */
+export const INTERVIEW_NOTICES = ["moved", "cancelled", "reminder"] as const;
+export type InterviewNotice = (typeof INTERVIEW_NOTICES)[number];
+
+export function isInterviewNotice(value: unknown): value is InterviewNotice {
+  return (INTERVIEW_NOTICES as readonly unknown[]).includes(value);
+}
+
+export function noticeLabel(notice: InterviewNotice): string {
+  switch (notice) {
+    case "moved":
+      return "Interview moved";
+    case "cancelled":
+      return "Interview cancelled";
+    case "reminder":
+      return "Interview reminder";
+  }
+}
+
+export type NoticeInput = {
+  name: string;
+  /** The role's title in the notice's language. */
+  role: string;
+  /** The English title, for the story line; `role` when absent. */
+  roleEn?: string;
+  /** The interview's start as an ISO moment: the new one for a move, the one it was for a cancel. */
+  startsAt: string;
+  minutes?: number;
+  where?: string;
+  withWhom?: string;
+  /** A line of the office's own, after the words. */
+  note?: string;
+};
+
+/** A notice in the candidate's language; null when `startsAt` is not a moment. */
+export function buildInterviewNotice(notice: InterviewNotice, input: NoticeInput, locale: Locale, brand: LetterBrand): BuiltLetter | null {
+  const at = new Date(input.startsAt);
+  if (Number.isNaN(at.getTime())) return null;
+  const W = patchWords(LETTER_WORDS[locale], brand.words?.[locale]);
+  const x = W[notice];
+  const zone = brand.timeZone ?? DEFAULT_TIME_ZONE;
+  const when = sayMoment(at, locale, zone);
+  const say = speaker(input, locale, brand);
+  const role = input.roleEn?.trim() || input.role.trim();
+  const whenEn = sayMoment(at, "en", zone);
+  const tongue = locale === "en" ? "" : ` (${LANGUAGE_NAMES[locale]})`;
+  // A move and a reminder carry the whole interview; a cancel only says which one is off.
+  const facts =
+    notice === "cancelled"
+      ? []
+      : [
+          ...fact(W.invited.factWhen, when),
+          ...fact(W.invited.factLength, sayLength(input.minutes, locale) ?? undefined),
+          ...fact(W.invited.factWhere, input.where),
+          ...fact(W.invited.factWith, input.withWhom),
+        ];
+  const paragraphs = [say(x.body1, { when }), say(x.body2, { when }), ...lines(input.note)];
+  const summary =
+    notice === "moved"
+      ? `Interview for ${role} moved to ${whenEn}${tongue}`
+      : notice === "cancelled"
+        ? `Interview for ${role} on ${whenEn} cancelled${tongue}`
+        : `Reminded of the interview for ${role} on ${whenEn}${tongue}`;
+  return {
+    locale,
+    dir: locale === "ar" ? "rtl" : "ltr",
+    subject: say(x.subject, { when }),
+    preheader: (paragraphs[0] ?? "").slice(0, 120),
+    eyebrow: x.eyebrow,
+    title: say(x.headline, { when }),
+    paragraphs,
+    facts,
+    closing: say(x.closing, { when }),
+    summary,
+  };
+}
+
+/**
  * The letter's idempotency key for Resend: its own words make it, so pressing
  * Send twice mails it once, and a corrected letter is a new one. `body` is
  * what goes (the rendered HTML). Web Crypto, so it runs anywhere.
  */
-export async function letterKey(letter: Letter, id: string, subject: string, body: string): Promise<string> {
+export async function letterKey(letter: Letter | InterviewNotice, id: string, subject: string, body: string): Promise<string> {
   const digest = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(subject + body));
   const hex = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
   return `${letter}-${id}-${hex.slice(0, 32)}`;

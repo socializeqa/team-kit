@@ -48,6 +48,13 @@ export function sayMoment(at: Date, locale: Locale, timeZone: string = DEFAULT_T
   return new Intl.DateTimeFormat(DATE_TAGS[locale], { dateStyle: "full", timeStyle: "short", timeZone }).format(at);
 }
 
+/** How long an interview runs, the way the reader says it: "45 minutes", "٤٥ دقيقة"; null for anything but a sane whole number. */
+export function sayLength(minutes: unknown, locale: Locale): string | null {
+  const n = typeof minutes === "string" ? Number(minutes) : minutes;
+  if (typeof n !== "number" || !Number.isInteger(n) || n < 5 || n > 480) return null;
+  return new Intl.NumberFormat(DATE_TAGS[locale], { style: "unit", unit: "minute", unitDisplay: "long" }).format(n);
+}
+
 /** Text in a calendar line: backslashes, semicolons, commas and line breaks escaped (RFC 5545 3.3.11). */
 const escape = (text: string) => text.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
 
@@ -71,8 +78,11 @@ function fold(line: string): string {
 
 const stamp = (at: Date) => at.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 
+/** Someone on a calendar file: their address, and the name a calendar shows. */
+export type CalendarParty = { email: string; name?: string };
+
 export type InterviewEvent = {
-  /** Unique and stable for this interview, so a re-sent invite updates the same event: "interview-<id>-<time>@example.com". */
+  /** Unique and stable for this interview, so a re-sent invite updates the same event: "interview-<id>@example.com". */
   uid: string;
   title: string;
   /** The start as an ISO moment (momentIn(...).toISOString()). */
@@ -82,31 +92,94 @@ export type InterviewEvent = {
   description?: string;
   /** Who made the file: "-//Example Co//Hiring//EN". */
   prodId: string;
+  /**
+   * Who invites: the address the letter comes from. RFC 5546 asks for one on
+   * every method; with an `attendee` the file is a real invitation (REQUEST)
+   * that the candidate's calendar answers, updates and cancels.
+   */
+  organizer?: CalendarParty;
+  /** The candidate. With an organizer, the file invites them (REQUEST); without, it is published to add (PUBLISH). */
+  attendee?: CalendarParty;
+  /**
+   * How many times this interview was changed after it was first sent: 0 for
+   * the invite, then one more for every move. The highest one wins in their
+   * calendar (RFC 5546 2.1.5), so a moved invite replaces the old one.
+   */
+  sequence?: number;
+  /** The interview is off: the file cancels it in their calendar (CANCEL). */
+  cancelled?: boolean;
   /** When the file was made; now unless a test pins it. */
   now?: Date;
 };
 
-/** The interview as a calendar file, in UTC with CRLF lines; null when `startsAt` is not a moment. */
+/** What a calendar file asks of the calendar that opens it (RFC 5546 1.4). */
+export function icsMethod(event: Pick<InterviewEvent, "organizer" | "attendee" | "cancelled">): "PUBLISH" | "REQUEST" | "CANCEL" {
+  if (event.cancelled && event.organizer) return "CANCEL";
+  return event.organizer && event.attendee ? "REQUEST" : "PUBLISH";
+}
+
+// A name inside a parameter is a quoted string: no quote marks or control characters in it (RFC 5545 3.2).
+const quoted = (name: string | undefined) => `"${(name ?? "").replace(/["\u0000-\u001f\u007f]/g, "").trim()}"`;
+// An address is a mailto: URI, never escaped like text; anything that is not an address is left out.
+const mailto = (party: CalendarParty | undefined) => (party && /^[^\s@<>"]+@[^\s@<>"]+$/.test(party.email.trim()) ? `mailto:${party.email.trim()}` : null);
+const party = (key: string, who: CalendarParty, extra = "") => `${key}${who.name?.trim() ? `;CN=${quoted(who.name)}` : ""}${extra}:${mailto(who)}`;
+
+/**
+ * The interview as a calendar file, in UTC with CRLF lines; null when
+ * `startsAt` is not a moment. With an organizer and the candidate it is an
+ * invitation their calendar can accept, and the same uid with a higher
+ * sequence moves it (or, `cancelled`, takes it off) where they keep it.
+ */
 export function interviewIcs(event: InterviewEvent): string | null {
   const start = new Date(event.startsAt);
   if (Number.isNaN(start.getTime())) return null;
   const end = new Date(start.getTime() + (event.minutes ?? 45) * 60_000);
+  const organizer = event.organizer && mailto(event.organizer) ? event.organizer : undefined;
+  const attendee = event.attendee && mailto(event.attendee) ? event.attendee : undefined;
+  const method = icsMethod({ organizer, attendee, cancelled: event.cancelled });
+  const sequence = Math.max(0, Math.floor(event.sequence ?? 0));
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
     `PRODID:${event.prodId}`,
     "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
+    `METHOD:${method}`,
     "BEGIN:VEVENT",
     `UID:${escape(event.uid)}`,
     `DTSTAMP:${stamp(event.now ?? new Date())}`,
     `DTSTART:${stamp(start)}`,
     `DTEND:${stamp(end)}`,
+    // Present whenever it counts: a change, and always on a cancel.
+    ...(sequence > 0 || method === "CANCEL" ? [`SEQUENCE:${sequence}`] : []),
     `SUMMARY:${escape(event.title)}`,
+    ...(organizer ? [party("ORGANIZER", organizer)] : []),
+    // An invitation asks them to answer; a cancel names who it is cancelled for. A published file names nobody.
+    ...(attendee && method === "REQUEST" ? [party("ATTENDEE", attendee, ";ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE")] : []),
+    ...(attendee && method === "CANCEL" ? [party("ATTENDEE", attendee)] : []),
+    `STATUS:${method === "CANCEL" || event.cancelled ? "CANCELLED" : "CONFIRMED"}`,
     ...(event.location ? [`LOCATION:${escape(event.location)}`] : []),
     ...(event.description ? [`DESCRIPTION:${escape(event.description)}`] : []),
     "END:VEVENT",
     "END:VCALENDAR",
   ];
   return `${lines.map(fold).join("\r\n")}\r\n`;
+}
+
+/**
+ * The calendar file as an email attachment: its name, its words in base64,
+ * and the content type that names its method, which is how a mail app knows
+ * an invitation from a plain file.
+ */
+export function interviewAttachment(event: InterviewEvent): { filename: string; content: string; contentType: string } | null {
+  const file = interviewIcs(event);
+  if (!file) return null;
+  const method = icsMethod({ organizer: event.organizer && mailto(event.organizer) ? event.organizer : undefined, attendee: event.attendee && mailto(event.attendee) ? event.attendee : undefined, cancelled: event.cancelled });
+  const bytes = new TextEncoder().encode(file);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return {
+    filename: method === "CANCEL" ? "cancel.ics" : "invite.ics",
+    content: btoa(binary),
+    contentType: `text/calendar; charset=UTF-8; method=${method}`,
+  };
 }

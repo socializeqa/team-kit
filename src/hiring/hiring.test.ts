@@ -12,8 +12,12 @@ import {
   erasedRow,
   faultWords,
   hiringPapers,
+  buildInterviewNotice,
+  INTERVIEW_NOTICES,
+  interviewAttachment,
   interviewIcs,
   jobPostingLd,
+  sayLength,
   LETTERS,
   letterKey,
   letterNeeds,
@@ -177,6 +181,49 @@ describe("the letters", () => {
     expect(`${built.subject} ${built.title} ${built.paragraphs.join(" ")}`).toContain("Example Co");
   });
 
+  it("says how long an interview runs, pays a trial and thanks someone who came in", () => {
+    const invite = buildLetter("invited", { name: "Sam Example", role: "Office Manager", details: { ...details, minutes: "45" } }, "en", brand);
+    expect(invite.facts).toContainEqual({ label: "Length", value: "45 minutes" });
+    expect(buildLetter("invited", { name: "Sam", role: "Office Manager", details }, "en", brand).facts.some((f) => f.label === "Length")).toBe(false);
+    const trial = buildLetter("trial", { name: "Sam", role: "Designer", details: { ...details, paid: "This task is paid: QAR 300." } }, "en", brand);
+    expect(trial.paragraphs.at(-1)).toBe("This task is paid: QAR 300.");
+    expect(buildLetter("rejected", { name: "Sam", role: "Designer", details: { interviewed: "yes" } }, "en", brand).paragraphs[0]).toMatch(/^Thank you for coming in/);
+    expect(buildLetter("rejected", { name: "Sam", role: "Designer", details: {} }, "en", brand).paragraphs[0]).toMatch(/^We have read/);
+  });
+
+  it("lays an employer's own wording over the house's, line by line", () => {
+    const own: LetterBrand = { ...brand, words: { en: { received: { body2: "If it fits, you will hear from us on WhatsApp." } } } };
+    const built = buildLetter("received", { name: "Sam", role: "Designer" }, "en", own);
+    expect(built.paragraphs[1]).toBe("If it fits, you will hear from us on WhatsApp.");
+    expect(built.paragraphs[0]).toMatch(/^Thank you for applying/);
+    expect(buildLetter("received", { name: "Sam", role: "Designer" }, "ar", own).paragraphs[1]).not.toMatch(/WhatsApp/);
+  });
+
+  for (const locale of ["en", "ar", "fr", "it", "ru", "zh"] as const) {
+    it(`writes the three interview notices in ${locale}, every slot filled`, () => {
+      for (const notice of INTERVIEW_NOTICES) {
+        const built = buildInterviewNotice(
+          notice,
+          { name: "Sam Example", role: "Office Manager", startsAt: "2026-11-02T08:00:00.000Z", minutes: 45, where: "The office", withWhom: "Sam", note: "Bring your laptop." },
+          locale,
+          brand,
+        );
+        expect(built, `${notice} in ${locale}`).not.toBeNull();
+        const words = [built!.subject, built!.title, built!.closing, ...built!.paragraphs, ...built!.facts.map((f) => `${f.label} ${f.value}`)].join("\n");
+        expect(words, `${notice} in ${locale}`).not.toMatch(/\{[a-zA-Z]+\}/);
+        expect(built!.summary).not.toMatch(/[؀-ۿ]/);
+        expect(built!.paragraphs.at(-1)).toBe("Bring your laptop.");
+        expect(built!.facts.length).toBe(notice === "cancelled" ? 0 : 4);
+      }
+    });
+  }
+
+  it("files a notice's story line in English, on the office's clock", () => {
+    const moved = buildInterviewNotice("moved", { name: "سارة", role: "مدير مكتب", roleEn: "Office Manager", startsAt: "2026-11-02T08:00:00.000Z" }, "ar", brand);
+    expect(moved?.summary).toMatch(/^Interview for Office Manager moved to Monday,? 2 November 2026 at 11:00 \(Arabic\)$/);
+    expect(buildInterviewNotice("reminder", { name: "Sam", role: "Designer", startsAt: "not a moment" }, "en", brand)).toBeNull();
+  });
+
   it("keys a letter by its words, so a correction is a new letter", async () => {
     const a = await letterKey("rejected", "id-1", "Your application", "<p>One</p>");
     expect(a).toBe(await letterKey("rejected", "id-1", "Your application", "<p>One</p>"));
@@ -204,6 +251,60 @@ describe("the interview's calendar file", () => {
     expect(text).toContain("\\n");
     for (const line of text.split("\r\n")) expect(new TextEncoder().encode(line).length).toBeLessThanOrEqual(75);
     expect(interviewIcs({ uid: "x", title: "x", startsAt: "not a moment", prodId: "x" })).toBeNull();
+  });
+});
+
+describe("the interview as an invitation", () => {
+  const base = {
+    uid: "interview-42@example.com",
+    title: "Interview, Example Co: Office Manager",
+    startsAt: "2026-11-02T08:00:00.000Z",
+    minutes: 60,
+    prodId: "-//Example Co//Hiring//EN",
+    now: new Date("2026-10-10T00:00:00.000Z"),
+    organizer: { email: "hello@example.com", name: "Example Co" },
+    attendee: { email: "sam@example.com", name: 'Sam "the" Example' },
+  };
+  const read = (text: string | null) => (text ?? "").replace(/\r\n /g, "").split("\r\n");
+
+  it("invites the candidate, who can answer it, with the organizer RFC 5546 asks for", () => {
+    const lines = read(interviewIcs(base));
+    expect(lines).toContain("METHOD:REQUEST");
+    expect(lines).toContain('ORGANIZER;CN="Example Co":mailto:hello@example.com');
+    expect(lines).toContain('ATTENDEE;CN="Sam the Example";ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:sam@example.com');
+    expect(lines).toContain("DTEND:20261102T090000Z");
+    expect(lines).toContain("STATUS:CONFIRMED");
+    expect(lines.some((line) => line.startsWith("SEQUENCE"))).toBe(false);
+  });
+
+  it("moves it with a higher sequence, and cancels it for the same person", () => {
+    expect(read(interviewIcs({ ...base, sequence: 2 }))).toContain("SEQUENCE:2");
+    const cancel = read(interviewIcs({ ...base, sequence: 3, cancelled: true }));
+    expect(cancel).toContain("METHOD:CANCEL");
+    expect(cancel).toContain("STATUS:CANCELLED");
+    expect(cancel).toContain("SEQUENCE:3");
+    expect(cancel).toContain('ATTENDEE;CN="Sam the Example":mailto:sam@example.com');
+  });
+
+  it("publishes a plain file when nobody can be invited", () => {
+    const lines = read(interviewIcs({ ...base, attendee: { email: "not an address" } }));
+    expect(lines).toContain("METHOD:PUBLISH");
+    expect(lines.some((line) => line.startsWith("ATTENDEE"))).toBe(false);
+  });
+
+  it("goes as an attachment whose type names its method", () => {
+    const file = interviewAttachment({ ...base, cancelled: true, sequence: 1 });
+    expect(file?.filename).toBe("cancel.ics");
+    expect(file?.contentType).toBe("text/calendar; charset=UTF-8; method=CANCEL");
+    expect(Buffer.from(file!.content, "base64").toString("utf8")).toBe(interviewIcs({ ...base, cancelled: true, sequence: 1 }));
+    expect(interviewAttachment({ ...base, startsAt: "nope" })).toBeNull();
+  });
+
+  it("says the length in the reader's language", () => {
+    expect(sayLength("45", "en")).toBe("45 minutes");
+    expect(sayLength(90, "fr")).toBe("90 minutes");
+    expect(sayLength("3", "en")).toBeNull();
+    expect(sayLength("soon", "en")).toBeNull();
   });
 });
 
