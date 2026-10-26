@@ -32,6 +32,12 @@ export interface ChangelogEntry {
   points?: string[];
   /** Socialize request ids this note closes. Naming them is what closes them. */
   closes?: string[];
+  /**
+   * How big the work was: true for a major job, false for a small one.
+   * HQ keeps it on the line and says it in the client's Telegram with the
+   * news that the work is live. Left out, the line is filed unmarked.
+   */
+  major?: boolean;
 }
 
 export interface FeedConfig {
@@ -144,6 +150,7 @@ export async function feed(config: FeedConfig): Promise<FeedResult> {
           body: (entry.points ?? []).map((p) => `• ${p}`).join("\n"),
           areas: entry.areas ?? [],
           closes: entry.closes ?? [],
+          ...(typeof entry.major === "boolean" ? { major: entry.major } : {}),
           commit: sha,
           deployedAt: at,
         }),

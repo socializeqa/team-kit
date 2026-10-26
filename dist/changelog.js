@@ -92,6 +92,7 @@ export async function feed(config) {
                     body: (entry.points ?? []).map((p) => `• ${p}`).join("\n"),
                     areas: entry.areas ?? [],
                     closes: entry.closes ?? [],
+                    ...(typeof entry.major === "boolean" ? { major: entry.major } : {}),
                     commit: sha,
                     deployedAt: at,
                 }),

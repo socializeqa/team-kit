@@ -93,6 +93,29 @@ describe("feed — filing the notes", () => {
     vi.unstubAllGlobals();
   });
 
+  it("carries a note's size to HQ only when the note says it", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        if (!init?.method) return ok([]);
+        bodies.push(JSON.parse(String(init.body)));
+        return { ok: true, json: async () => ({}) } as Response;
+      }),
+    );
+    await feed({
+      token: "t",
+      entries: [{ ...note("big"), major: true }, { ...note("small"), major: false }, note("unsaid")],
+      log: () => {},
+    });
+    expect(bodies.map((b) => [b.title, b.major])).toEqual([
+      ["unsaid", undefined],
+      ["small", false],
+      ["big", true],
+    ]);
+    vi.unstubAllGlobals();
+  });
+
   // The scan-until-a-known-title version reposted the whole file whenever
   // an already-filed note was edited, because the title it was looking
   // for no longer existed.
