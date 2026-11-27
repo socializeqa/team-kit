@@ -52,7 +52,18 @@ export type { ChangelogEntry, FeedConfig, FeedResult, AuditConfig, AuditResult }
 export type { NotifyConfig, NotifyEvent, NotifyResult, NotifyButton } from "./notify.js";
 export type { Press, PressAnswer } from "./press.js";
 export type { Ask, AskAnswer, BookingRow } from "./ask.js";
-export type { AiConfig, AiUsage, AskJson, HqAiConfig } from "./ai.js";
+export type {
+  AiConfig,
+  AiUsage,
+  AskJson,
+  ClaudeAsk,
+  ClaudeModel,
+  ClaudePart,
+  ClaudeResult,
+  ClaudeTurn,
+  ClaudeUsage,
+  HqAiConfig,
+} from "./ai.js";
 export type { BrainConfig, BrainLine, BrainResult } from "./brain.js";
 export type { ReviewsConfig, ClientReview, ReviewPlace, ReviewsResult, ReviewPress, PressResult, ReviewStatus, MonthScore } from "./reviews.js";
 export type { ScrubRules } from "./scrub.js";

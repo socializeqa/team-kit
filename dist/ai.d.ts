@@ -114,3 +114,76 @@ export declare const HQ_AI_URL = "https://socialize.qa/api/ai";
 export declare function askViaHq<T>(config: HqAiConfig, ask: AskJson & {
     purpose: string;
 }): Promise<T | null>;
+/**
+ * The house's Claude models on Anthropic's own API. HQ holds the key, meters
+ * each call against the app's client and bills it on their statement, as the
+ * OpenRouter door does. Prices: platform.claude.com/docs/en/about-claude/pricing.
+ */
+export declare const CLAUDE: {
+    /** The strongest Opus: words a guest or a client reads. It always thinks first. */
+    readonly smart: "claude-opus-5-5";
+    /** Sonnet, which can answer without thinking: a reply inside a chat's few seconds. */
+    readonly quick: "claude-sonnet-5-5";
+};
+export type ClaudeModel = (typeof CLAUDE)[keyof typeof CLAUDE];
+export declare const HQ_CLAUDE_URL = "https://socialize.qa/api/ai/claude";
+/** A piece of a turn: words, or a picture sent whole. */
+export type ClaudePart = {
+    type: "text";
+    text: string;
+} | {
+    type: "image";
+    mediaType: string;
+    base64: string;
+};
+export interface ClaudeTurn {
+    role: "user" | "assistant";
+    content: string | ClaudePart[];
+}
+export interface ClaudeAsk {
+    /** The statement line the call is billed under ("Instagram replies"). */
+    purpose: string;
+    model: ClaudeModel;
+    /** One to three parts. With more than one, the first is the part that never moves, and is cached. */
+    system: string[];
+    /** The conversation, oldest first, ending with the guest's or the user's turn. */
+    turns: ClaudeTurn[];
+    /** The JSON schema the answer must fit; without one the answer is plain words. */
+    schema?: Record<string, unknown>;
+    schemaName?: string;
+    /** Room for the answer, thinking included. */
+    maxTokens?: number;
+    /** How hard the model thinks: low for a chat reply. */
+    effort?: "low" | "medium" | "high";
+    /** Sonnet only: answer without thinking first, for a reply on a clock. */
+    noThinking?: boolean;
+    /** The whole wait, the hop to HQ included; HQ gives the model a little less. */
+    timeoutMs?: number;
+}
+export interface ClaudeUsage {
+    model: string;
+    promptTokens: number;
+    completionTokens: number;
+    costUsd: number;
+}
+export type ClaudeResult<T = unknown> = {
+    ok: true;
+    /** The answer's words; with a schema, the JSON as written. */
+    text: string;
+    /** The parsed answer when a schema was asked for, else null. */
+    answer: T | null;
+    usage: ClaudeUsage;
+    /** "end_turn", or "max_tokens" when the room ran out mid-answer. */
+    stopReason: string;
+} | {
+    ok: false;
+    error: string;
+    status: number | null;
+    timedOut: boolean;
+};
+/**
+ * One Claude answer, asked through HQ with the app's hub key. Never throws:
+ * a refusal, a cap reached or a slow model comes back as `ok: false`, with
+ * whether the wait ran out, so the app can say which.
+ */
+export declare function askClaudeViaHq<T = unknown>(config: HqAiConfig, ask: ClaudeAsk): Promise<ClaudeResult<T>>;

@@ -158,3 +158,53 @@ export async function askViaHq(config, ask) {
         return null;
     }
 }
+// ── Claude, through Socialize ───────────────────────────────────────────
+/**
+ * The house's Claude models on Anthropic's own API. HQ holds the key, meters
+ * each call against the app's client and bills it on their statement, as the
+ * OpenRouter door does. Prices: platform.claude.com/docs/en/about-claude/pricing.
+ */
+export const CLAUDE = {
+    /** The strongest Opus: words a guest or a client reads. It always thinks first. */
+    smart: "claude-opus-5-5",
+    /** Sonnet, which can answer without thinking: a reply inside a chat's few seconds. */
+    quick: "claude-sonnet-5-5",
+};
+export const HQ_CLAUDE_URL = "https://socialize.qa/api/ai/claude";
+/**
+ * One Claude answer, asked through HQ with the app's hub key. Never throws:
+ * a refusal, a cap reached or a slow model comes back as `ok: false`, with
+ * whether the wait ran out, so the app can say which.
+ */
+export async function askClaudeViaHq(config, ask) {
+    if (!config.key)
+        return { ok: false, error: "No hub key.", status: null, timedOut: false };
+    const waitMs = ask.timeoutMs ?? config.timeoutMs ?? 90_000;
+    try {
+        const response = await fetch(config.url ?? HQ_CLAUDE_URL, {
+            method: "POST",
+            signal: AbortSignal.timeout(waitMs),
+            headers: { Authorization: `Bearer ${config.key}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ ...ask, timeoutMs: waitMs }),
+        });
+        const body = (await response.json().catch(() => null));
+        if (!response.ok || !body?.ok || typeof body.text !== "string" || !body.usage) {
+            const error = body?.error ?? `HQ answered ${response.status}`;
+            config.onError?.("claude via hq", error);
+            return { ok: false, error, status: response.status, timedOut: response.status === 504 };
+        }
+        return {
+            ok: true,
+            text: body.text,
+            answer: body.answer ?? null,
+            usage: body.usage,
+            stopReason: body.stopReason ?? "end_turn",
+        };
+    }
+    catch (error) {
+        const name = error instanceof Error ? error.name : "";
+        const detail = error instanceof Error ? error.message : String(error);
+        config.onError?.("claude via hq", detail);
+        return { ok: false, error: detail, status: null, timedOut: name === "TimeoutError" || name === "AbortError" };
+    }
+}

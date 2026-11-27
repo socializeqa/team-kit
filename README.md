@@ -413,6 +413,24 @@ const read = await askViaHq<Screen>(
 );
 ```
 
+Claude itself, on Anthropic's own API, goes through HQ's Claude door the same
+way: the hub key, a `purpose` for the statement line, the cost booked against
+the client. It takes a whole conversation (with pictures) and answers in plain
+words, or in JSON when a schema is given. `CLAUDE.smart` (Opus) always thinks
+first; `CLAUDE.quick` (Sonnet) can skip it with `noThinking` for a reply on a
+clock. `maxTokens` is room for the thinking and the answer together.
+
+```ts
+import { askClaudeViaHq, CLAUDE } from "@socialize/team-kit/ai";
+
+const result = await askClaudeViaHq(
+  { key: process.env.SOCIALIZE_NOTIFY_KEY ?? "", onError: report },
+  { purpose: "Instagram replies", model: CLAUDE.smart, effort: "low",
+    system: [rules, rightNow], turns, maxTokens: 4000, timeoutMs: 8000 },
+);
+if (!result.ok) return fallback(result.timedOut ? "timeout" : result.error);
+```
+
 ## Reading the client's brain
 
 What we know about a client (rules, facts, voice, words never said, staff
